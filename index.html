@@ -425,13 +425,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="settings-section">
     <div class="settings-section-title">API-nøkler</div>
     <div style="font-size:13px;color:var(--text-light);margin-bottom:12px;line-height:1.5;">
-      Nøklene lagres kun i din nettleser og trengs bare én gang.<br>
-      <strong>Gemini:</strong> <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary)">Hent gratis nøkkel her →</a><br>
+      Pixabay-nøkkelen lagres kun i din nettleser og trengs bare én gang.<br>
       <strong>Pixabay:</strong> <a href="https://pixabay.com/api/docs/" target="_blank" style="color:var(--primary)">Hent gratis nøkkel her →</a>
-    </div>
-    <div class="settings-row">
-      <label class="settings-label">Gemini API-nøkkel (AI-funksjoner)</label>
-      <input class="settings-input" id="stGemini" placeholder="Lim inn nøkkel fra aistudio.google.com" autocomplete="off">
     </div>
     <div class="settings-row">
       <label class="settings-label">Pixabay API-nøkkel (bildesøk)</label>
@@ -1114,10 +1109,8 @@ async function witCapture() {
   _witImageData = compressed;
   document.getElementById('witResultImg').src = compressed;
 
-  const apiKey = getCfg('gemini');
-  if (!apiKey) { witError('Legg til Gemini API-nøkkel i innstillinger'); return; }
   try {
-    const word = await geminiIdentify(compressed, apiKey);
+    const word = await geminiIdentify(compressed);
     if (!word) { witError('Klarte ikke å kjenne igjen — prøv et annet bilde'); return; }
     _witWord = word;
     document.getElementById('witSpinner').style.display = 'none';
@@ -1330,13 +1323,11 @@ function closeAiSetBuilder() { document.getElementById('aiSetModal').classList.r
 async function runAiSetSuggest() {
   const topic = document.getElementById('aiSetTopic').value.trim();
   if (!topic) { toast('Skriv inn et tema', 'error'); return; }
-  const apiKey = getCfg('gemini');
-  if (!apiKey) { toast('Legg til Gemini API-nøkkel i innstillinger', 'error'); return; }
   const el = document.getElementById('aiSetResults');
   el.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   document.getElementById('aiSetActions').style.display = 'none';
   try {
-    const text = await geminiRequest(apiKey, { contents: [{ parts: [
+    const text = await geminiRequest(null, { contents: [{ parts: [
       { text: `List opp 12 vanlige norske bokmål-ord relatert til temaet "${topic}". Inkluder ubestemt artikkel (en/ei/et) for hvert substantiv. Kun ord, ett per linje, ingen nummerering eller forklaring.` }
     ]}]});
     _aiSetWords = text.split('\n').map(w => w.trim()).filter(Boolean).slice(0, 12).map(w => ({ word: w, selected: true }));
@@ -1520,11 +1511,10 @@ function ecCameraCapture(input) {
     _workingCardImg = await compressImg(e.target.result);
     renderEditCard();
     // Try AI identification
-    const apiKey = getCfg('gemini');
-    if (apiKey && !document.getElementById('ecText').value) {
+    if (!document.getElementById('ecText').value) {
       toast('AI identifiserer…');
       try {
-        const word = await geminiIdentify(_workingCardImg, apiKey);
+        const word = await geminiIdentify(_workingCardImg);
         if (word) { document.getElementById('ecText').value = word; toast(`AI foreslår: ${word}`, 'success'); }
       } catch {}
     }
@@ -1576,17 +1566,16 @@ async function pickPixabayImg(url) {
 /* ============================================================
    AI HELPERS (GEMINI)
    ============================================================ */
+const GEMINI_WORKER = 'https://kortspill-gemini.philippaulstreet.workers.dev';
+
 async function geminiRequest(apiKey, body) {
-  // AQ. keys are OAuth2 tokens → Bearer header; AIza keys → ?key= param
-  const isOAuth = apiKey.startsWith('AQ.');
-  const url = isOAuth
-    ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
-    : `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const headers = { 'Content-Type': 'application/json' };
-  if (isOAuth) headers['Authorization'] = `Bearer ${apiKey}`;
   for (let attempt = 0; attempt <= 2; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, 1500 * attempt));
-    const r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    const r = await fetch(GEMINI_WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gemini-2.0-flash', payload: body })
+    });
     if (r.ok) {
       const data = await r.json();
       return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
@@ -1597,10 +1586,10 @@ async function geminiRequest(apiKey, body) {
   }
 }
 
-async function geminiIdentify(dataUrl, apiKey) {
+async function geminiIdentify(dataUrl) {
   const base64 = dataUrl.split(',')[1];
   const mimeType = dataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
-  return geminiRequest(apiKey, { contents: [{ parts: [
+  return geminiRequest(null, { contents: [{ parts: [
     { text: 'Hva er det viktigste objektet i dette bildet? Svar på norsk bokmål med ubestemt artikkel og substantiv, for eksempel "en kopp", "et vindu", "en bil". Maks 3 ord. Kun svaret, ingenting annet.' },
     { inline_data: { mime_type: mimeType, data: base64 } }
   ]}]});
@@ -1612,12 +1601,10 @@ function closeAiSuggest() { document.getElementById('aiModal').classList.remove(
 async function getAiSuggestions() {
   const topic = document.getElementById('aiTopic').value.trim();
   if (!topic) { toast('Skriv inn et tema', 'error'); return; }
-  const apiKey = getCfg('gemini');
-  if (!apiKey) { toast('Legg til Gemini API-nøkkel i innstillinger', 'error'); return; }
   const el = document.getElementById('aiResults');
   el.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   try {
-    const text = await geminiRequest(apiKey, { contents: [{ parts: [
+    const text = await geminiRequest(null, { contents: [{ parts: [
       { text: `List opp 12 vanlige norske bokmål-ord relatert til temaet "${topic}". Inkluder ubestemt artikkel (en/ei/et) for hvert substantiv. Kun ord, ett per linje, ingen nummerering eller forklaring.` }
     ]}]});
     const words = text.split('\n').map(w => w.trim()).filter(Boolean).slice(0, 12);
@@ -1638,7 +1625,6 @@ function pickSuggestion(word) {
 function renderSettings() {
   document.getElementById('stName').value = _currentTeacher?.name || '';
   document.getElementById('stPin').value = '';
-  document.getElementById('stGemini').value = getCfg('gemini');
   document.getElementById('stPixabay').value = getCfg('pixabay');
 }
 
@@ -1659,9 +1645,8 @@ async function saveSettings() {
 }
 
 function saveApiKeys() {
-  setCfg('gemini', document.getElementById('stGemini').value.trim());
   setCfg('pixabay', document.getElementById('stPixabay').value.trim());
-  toast('API-nøkler lagret ✓', 'success');
+  toast('API-nøkkel lagret ✓', 'success');
 }
 
 /* ============================================================
