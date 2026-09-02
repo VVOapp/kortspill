@@ -1577,10 +1577,16 @@ async function pickPixabayImg(url) {
    AI HELPERS (GEMINI)
    ============================================================ */
 async function geminiRequest(apiKey, body) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+  // AQ. keys are OAuth2 tokens → Bearer header; AIza keys → ?key= param
+  const isOAuth = apiKey.startsWith('AQ.');
+  const url = isOAuth
+    ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+    : `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (isOAuth) headers['Authorization'] = `Bearer ${apiKey}`;
   for (let attempt = 0; attempt <= 2; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, 1500 * attempt));
-    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
     if (r.ok) {
       const data = await r.json();
       return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
