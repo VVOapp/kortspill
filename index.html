@@ -366,7 +366,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="screen" id="screen-teacher-home">
   <div id="teacherSetList"></div>
   <div style="margin-top:16px;">
-    <button class="btn btn-primary btn-full btn-lg" onclick="newSet()">+ Nytt kortsett</button>
+    <button class="btn btn-primary btn-full btn-lg" onclick="openNewSetModal()">+ Nytt kortsett</button>
   </div>
 </div>
 
@@ -494,7 +494,50 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
-<!-- ── AI SUGGEST MODAL ── -->
+<!-- ── NEW SET CHOICE MODAL ── -->
+<div class="modal-overlay" id="newSetModal" onclick="if(event.target===this)closeNewSetModal()">
+  <div class="modal-box">
+    <div class="modal-title">➕ Nytt kortsett</div>
+    <p style="font-size:14px;color:var(--text-light);text-align:center;margin-bottom:16px;">Velg hvordan du vil lage kortsett</p>
+    <button class="btn btn-secondary btn-full btn-lg" style="margin-bottom:12px;text-align:left;justify-content:flex-start;gap:12px;" onclick="closeNewSetModal();newSingleCard()">
+      <span style="font-size:24px">🃏</span>
+      <span><strong>Enkelt kort</strong><br><span style="font-size:13px;font-weight:400;">Lag ett kort med tekst og bilde</span></span>
+    </button>
+    <button class="btn btn-primary btn-full btn-lg" style="text-align:left;justify-content:flex-start;gap:12px;" onclick="closeNewSetModal();openAiSetBuilder()">
+      <span style="font-size:24px">✨</span>
+      <span><strong>Sett med AI</strong><br><span style="font-size:13px;font-weight:400;">AI lager hele kortsettet for deg</span></span>
+    </button>
+    <button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="closeNewSetModal()">Avbryt</button>
+  </div>
+</div>
+
+<!-- ── AI SET BUILDER MODAL ── -->
+<div class="modal-overlay" id="aiSetModal" onclick="if(event.target===this)closeAiSetBuilder()">
+  <div class="modal-box" style="max-height:90dvh;overflow-y:auto;">
+    <div class="modal-title">✨ Lag sett med AI</div>
+    <div id="aiSetStep1">
+      <div class="settings-row">
+        <label class="settings-label">Tema (f.eks. kjøkken, klær, transport)</label>
+        <input class="settings-input" id="aiSetTopic" placeholder="Skriv tema…" autocomplete="off">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="runAiSetSuggest()">✨ Hent forslag</button>
+      <div id="aiSetResults" style="margin-top:14px;"></div>
+      <div id="aiSetActions" style="display:none;margin-top:14px;">
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:8px;">Trykk for å velge/fjerne ord. Valgte ord blir til kort.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="buildAiSet()">🚀 Lag kortsettet</button>
+          <button class="btn btn-ghost" onclick="closeAiSetBuilder()">Avbryt</button>
+        </div>
+      </div>
+    </div>
+    <div id="aiSetBuilding" style="display:none;text-align:center;padding:24px 0;">
+      <div class="spinner" style="margin:0 auto 12px;"></div>
+      <div id="aiSetProgress" style="font-size:14px;color:var(--text-light);">Lager kortsettet…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AI SUGGEST MODAL (single card) ── -->
 <div class="modal-overlay" id="aiModal" onclick="if(event.target===this)closeAiSuggest()">
   <div class="modal-box">
     <div class="modal-title">✨ AI-forslag</div>
@@ -1257,10 +1300,108 @@ async function renderTeacherHome() {
   } catch(err) { el.innerHTML = ''; toast('Feil: ' + err.message, 'error'); }
 }
 
+function openNewSetModal() { document.getElementById('newSetModal').classList.add('open'); }
+function closeNewSetModal() { document.getElementById('newSetModal').classList.remove('open'); }
+
+function newSingleCard() {
+  _workingSet = { id: uid(), name: '', teacherId: _currentTeacher?.id, cards: [], _isNew: true };
+  renderEditSet();
+  showScreen('edit-set');
+  // open card editor immediately
+  newCard();
+}
+
 function newSet() {
   _workingSet = { id: uid(), name: '', teacherId: _currentTeacher?.id, cards: [], _isNew: true };
   renderEditSet();
   showScreen('edit-set');
+}
+
+/* ── AI SET BUILDER ── */
+let _aiSetWords = [];
+
+function openAiSetBuilder() {
+  _aiSetWords = [];
+  document.getElementById('aiSetTopic').value = '';
+  document.getElementById('aiSetResults').innerHTML = '';
+  document.getElementById('aiSetActions').style.display = 'none';
+  document.getElementById('aiSetStep1').style.display = '';
+  document.getElementById('aiSetBuilding').style.display = 'none';
+  document.getElementById('aiSetModal').classList.add('open');
+}
+function closeAiSetBuilder() { document.getElementById('aiSetModal').classList.remove('open'); }
+
+async function runAiSetSuggest() {
+  const topic = document.getElementById('aiSetTopic').value.trim();
+  if (!topic) { toast('Skriv inn et tema', 'error'); return; }
+  const apiKey = getCfg('gemini');
+  if (!apiKey) { toast('Legg til Gemini API-nøkkel i innstillinger', 'error'); return; }
+  const el = document.getElementById('aiSetResults');
+  el.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+  document.getElementById('aiSetActions').style.display = 'none';
+  try {
+    const text = await geminiRequest(apiKey, { contents: [{ parts: [
+      { text: `List opp 12 vanlige norske bokmål-ord relatert til temaet "${topic}". Inkluder ubestemt artikkel (en/ei/et) for hvert substantiv. Kun ord, ett per linje, ingen nummerering eller forklaring.` }
+    ]}]});
+    _aiSetWords = text.split('\n').map(w => w.trim()).filter(Boolean).slice(0, 12).map(w => ({ word: w, selected: true }));
+    renderAiSetWords();
+    document.getElementById('aiSetActions').style.display = '';
+  } catch(err) { el.innerHTML = `<span style="color:var(--danger)">${esc(err.message)}</span>`; }
+}
+
+function renderAiSetWords() {
+  const el = document.getElementById('aiSetResults');
+  el.innerHTML = _aiSetWords.map((w, i) =>
+    `<span class="suggestion-chip${w.selected ? ' selected' : ''}" style="${w.selected ? 'background:var(--primary);color:#fff;' : ''}" onclick="toggleAiWord(${i})">${esc(w.word)}</span>`
+  ).join('');
+}
+
+function toggleAiWord(i) {
+  _aiSetWords[i].selected = !_aiSetWords[i].selected;
+  renderAiSetWords();
+}
+
+async function buildAiSet() {
+  const topic = document.getElementById('aiSetTopic').value.trim();
+  const chosen = _aiSetWords.filter(w => w.selected);
+  if (!chosen.length) { toast('Velg minst ett ord', 'error'); return; }
+  const pixKey = getCfg('pixabay');
+
+  document.getElementById('aiSetStep1').style.display = 'none';
+  document.getElementById('aiSetBuilding').style.display = '';
+  const prog = document.getElementById('aiSetProgress');
+
+  const cards = [];
+  for (let i = 0; i < chosen.length; i++) {
+    const w = chosen[i];
+    prog.textContent = `Henter bilde ${i + 1} av ${chosen.length}: ${w.word}…`;
+    let image = null;
+    if (pixKey) {
+      try {
+        const searchWord = w.word.replace(/^(en|ei|et)\s+/i, '');
+        const res = await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(pixKey)}&q=${encodeURIComponent(searchWord)}&image_type=photo&per_page=3&lang=no`);
+        const data = await res.json();
+        if (data.hits && data.hits.length) image = data.hits[0].webformatURL;
+      } catch(e) { /* skip image */ }
+    }
+    cards.push({ id: uid(), text: w.word, image, tts: true });
+  }
+
+  prog.textContent = 'Lagrer kortsettet…';
+  const setName = topic.charAt(0).toUpperCase() + topic.slice(1);
+  const newSetData = { id: uid(), name: setName, cards, teacher_id: _currentTeacher.id };
+  try {
+    await saveSetToDb(newSetData);
+    await loadSets();
+    closeAiSetBuilder();
+    toast(`✓ "${setName}" lagret med ${cards.length} kort`, 'success');
+    // open the set for review
+    await openEditSet(newSetData.id);
+  } catch(err) {
+    document.getElementById('aiSetStep1').style.display = '';
+    document.getElementById('aiSetBuilding').style.display = 'none';
+    toast('Feil: ' + err.message, 'error');
+  }
 }
 
 async function openEditSet(id) {
@@ -1539,6 +1680,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (document.getElementById('pinModal').classList.contains('open')) { closePinModal(); return; }
     if (document.getElementById('imgSearchModal').classList.contains('open')) { closeImgSearch(); return; }
+    if (document.getElementById('newSetModal').classList.contains('open')) { closeNewSetModal(); return; }
+    if (document.getElementById('aiSetModal').classList.contains('open')) { closeAiSetBuilder(); return; }
     if (document.getElementById('aiModal').classList.contains('open')) { closeAiSuggest(); return; }
   }
   if (document.getElementById('pinModal').classList.contains('open') && document.getElementById('pinStep2').style.display !== 'none') {
