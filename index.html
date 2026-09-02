@@ -664,7 +664,11 @@ async function updateTeacherInDb(id, data) {
 }
 
 // Per-teacher settings stored in localStorage (API keys only)
-function getCfg(key) { return localStorage.getItem('vvo_cfg_' + key) || ''; }
+const _defaultKeys = {
+  gemini: 'AQ.Ab8RN6IbzqOj9zBmJ58bXDuTmQXXExwuO_lhxAlpgiTFHh9zMw',
+  pixabay: '55914045-6afc1877e7b9580cb646a9cc1'
+};
+function getCfg(key) { return localStorage.getItem('vvo_cfg_' + key) || _defaultKeys[key] || ''; }
 function setCfg(key, val) { localStorage.setItem('vvo_cfg_' + key, val); }
 
 /* ============================================================
