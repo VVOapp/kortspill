@@ -424,9 +424,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
   <div class="settings-section">
     <div class="settings-section-title">API-nøkler</div>
+    <div style="font-size:13px;color:var(--text-light);margin-bottom:12px;line-height:1.5;">
+      Nøklene lagres kun i din nettleser og trengs bare én gang.<br>
+      <strong>Gemini:</strong> <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary)">Hent gratis nøkkel her →</a><br>
+      <strong>Pixabay:</strong> <a href="https://pixabay.com/api/docs/" target="_blank" style="color:var(--primary)">Hent gratis nøkkel her →</a>
+    </div>
     <div class="settings-row">
       <label class="settings-label">Gemini API-nøkkel (AI-funksjoner)</label>
-      <input class="settings-input" id="stGemini" placeholder="AIza…" autocomplete="off">
+      <input class="settings-input" id="stGemini" placeholder="Lim inn nøkkel fra aistudio.google.com" autocomplete="off">
     </div>
     <div class="settings-row">
       <label class="settings-label">Pixabay API-nøkkel (bildesøk)</label>
@@ -665,7 +670,7 @@ async function updateTeacherInDb(id, data) {
 
 // Per-teacher settings stored in localStorage (API keys only)
 const _defaultKeys = {
-  gemini: 'AQ.Ab8RN6IbzqOj9zBmJ58bXDuTmQXXExwuO_lhxAlpgiTFHh9zMw',
+  gemini: 'AIzaSyBgD6zsCvRUD-HRLxaniYIwNIMjnXcuIdI',
   pixabay: '55914045-6afc1877e7b9580cb646a9cc1'
 };
 function getCfg(key) { return localStorage.getItem('vvo_cfg_' + key) || _defaultKeys[key] || ''; }
