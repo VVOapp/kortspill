@@ -1526,7 +1526,10 @@ function ecCameraCapture(input) {
 /* ============================================================
    IMAGE SEARCH (PIXABAY)
    ============================================================ */
-function openImgSearch() { document.getElementById('imgSearchModal').classList.add('open'); }
+function openImgSearch() {
+  document.getElementById('imgSearchModal').classList.add('open');
+  setTimeout(() => document.getElementById('imgSearchInput').focus(), 100);
+}
 function closeImgSearch() { document.getElementById('imgSearchModal').classList.remove('open'); }
 
 async function doImgSearch() {
