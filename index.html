@@ -707,7 +707,9 @@ async function updateTeacherInDb(id, data) {
 }
 
 // Per-teacher settings stored in localStorage (API keys only)
-function getCfg(key) { return localStorage.getItem('vvo_cfg_' + key) || ''; }
+function getCfg(key) {
+  return localStorage.getItem('vvo_cfg_' + key) || (key === 'pixabay' ? '55914045-6afc1877e7b9580cb646a9cc1' : '');
+}
 function setCfg(key, val) { localStorage.setItem('vvo_cfg_' + key, val); }
 
 /* ============================================================
