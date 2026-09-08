@@ -449,7 +449,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="modal-title" style="text-align:center">👩‍🏫 Velg bruker</div>
       <div class="pin-teacher-list" id="pinTeacherList"></div>
       <div id="pinCreateFirst" style="display:none">
-        <div style="font-size:14px;color:var(--text-light);text-align:center;margin-bottom:16px;">Ingen lærere ennå. Opprett din første konto:</div>
+        <div style="font-size:14px;color:var(--text-light);text-align:center;margin-bottom:16px;">Opprett ny lærerkonto:</div>
         <div class="settings-row">
           <label class="settings-label">Navn</label>
           <input class="settings-input" id="newTeacherName" placeholder="Ditt navn" autocomplete="off">
@@ -458,7 +458,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <label class="settings-label">PIN-kode (min. 4 siffer)</label>
           <input class="settings-input" id="newTeacherPin" type="tel" inputmode="numeric" placeholder="Velg en PIN" maxlength="8" autocomplete="off">
         </div>
+        <div class="settings-row">
+          <label class="settings-label">Registreringskode</label>
+          <input class="settings-input" id="newTeacherRegCode" placeholder="Fås fra administrator" autocomplete="off">
+        </div>
         <button class="btn btn-primary btn-full" onclick="createFirstTeacher()">Opprett konto</button>
+        <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="document.getElementById('pinCreateFirst').style.display='none'">Avbryt</button>
       </div>
       <button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="closePinModal()">Avbryt</button>
     </div>
@@ -1256,7 +1261,8 @@ async function openTeacherLogin() {
         `<button class="pin-teacher-btn" onclick="pinSelectTeacher(${i})">
           <div class="pin-initial">${esc((t.name||'?')[0].toUpperCase())}</div>
           <div class="pin-teacher-name">${esc(t.name)}</div>
-        </button>`).join('');
+        </button>`).join('')
+        + `<button class="btn btn-ghost btn-full" style="margin-top:8px;font-size:13px;" onclick="document.getElementById('pinCreateFirst').style.display=''">+ Ny bruker</button>`;
     }
   } catch(err) { toast('Feil: ' + err.message, 'error'); closePinModal(); }
 }
@@ -1304,11 +1310,15 @@ function checkPin() {
   }
 }
 
+const REG_CODE = 'vvobruker';
+
 async function createFirstTeacher() {
   const name = document.getElementById('newTeacherName').value.trim();
   const pin  = document.getElementById('newTeacherPin').value.trim();
+  const code = document.getElementById('newTeacherRegCode').value.trim().toLowerCase();
   if (!name) { toast('Skriv inn navn', 'error'); return; }
   if (pin.length < 4) { toast('PIN må være minst 4 siffer', 'error'); return; }
+  if (code !== REG_CODE) { toast('Feil registreringskode', 'error'); return; }
   try {
     const t = { id: uid(), name, teacher_pin: pin };
     await saveTeacherToDb(t);
@@ -1437,7 +1447,16 @@ async function buildAiSet() {
         const searchWord = w.word.replace(/^(en|ei|et)\s+/i, '');
         const res = await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(pixKey)}&q=${encodeURIComponent(searchWord)}&image_type=photo&per_page=3&lang=no`);
         const data = await res.json();
-        if (data.hits && data.hits.length) image = data.hits[0].webformatURL;
+        if (data.hits && data.hits.length) {
+          const imgUrl = data.hits[0].webformatURL;
+          // Convert to base64 so image doesn't expire
+          try {
+            const imgRes = await fetch(imgUrl);
+            const blob = await imgRes.blob();
+            image = await new Promise(r => { const fr = new FileReader(); fr.onload = e => r(e.target.result); fr.readAsDataURL(blob); });
+            image = await compressImg(image, 600, 600);
+          } catch(e) { image = imgUrl; } // fallback to URL if conversion fails
+        }
       } catch(e) { /* skip image */ }
     }
     cards.push({ id: uid(), text: w.word, image, tts: true });
