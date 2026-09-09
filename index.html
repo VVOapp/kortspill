@@ -24,11 +24,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nav-right{background:none;border:none;font-size:20px;cursor:pointer;padding:8px 10px;color:var(--primary);}
 
 /* SCREENS */
-.screen{display:none;min-height:calc(100dvh - 52px);padding:16px;}
+.screen{display:none;height:calc(100dvh - 52px);padding:16px;overflow-y:auto;box-sizing:border-box;}
 .screen.active{display:block;}
 .screen.no-pad{padding:0;}
 .screen.flex-col{display:none;flex-direction:column;}
 .screen.flex-col.active{display:flex;}
+/* Game screens: fit to viewport, no scroll */
+#screen-finn-par,#screen-finn-bildet,#screen-hvilken{overflow:hidden;display:none;flex-direction:column;}
+#screen-finn-par.active,#screen-finn-bildet.active,#screen-hvilken.active{display:flex;}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;padding:12px 20px;transition:all .15s;}
@@ -114,9 +117,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sol-progress{text-align:center;font-size:14px;color:var(--text-light);margin-top:12px;}
 
 /* FINN PAR */
-.fp-info{text-align:center;font-size:14px;color:var(--text-light);margin-bottom:12px;}
-.fp-grid{display:grid;gap:8px;}
-.fp-card{aspect-ratio:1;background:var(--primary);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .2s;}
+.fp-info{text-align:center;font-size:14px;color:var(--text-light);margin-bottom:0;}
+.fp-grid{display:grid;gap:8px;flex:1;min-height:0;}
+.fp-card{background:var(--primary);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .2s;min-height:0;}
 .fp-card.face-up{background:var(--surface);border:2px solid var(--border);}
 .fp-card.matched{opacity:.35;pointer-events:none;}
 .fp-card:active{transform:scale(.95);}
@@ -125,11 +128,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fp-word{font-size:11px;font-weight:700;color:var(--text);text-align:center;padding:0 4px;}
 
 /* FINN BILDET */
-.fb-header{text-align:center;padding:20px 0 16px;}
-.fb-word{font-size:30px;font-weight:900;margin-bottom:4px;}
+.fb-header{text-align:center;padding:12px 0 10px;flex-shrink:0;}
+.fb-word{font-size:28px;font-weight:900;margin-bottom:4px;}
 .fb-score{font-size:14px;color:var(--text-light);}
-.fb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.fb-choice{aspect-ratio:1;border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .12s;border:3px solid transparent;position:relative;}
+.fb-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;flex:1;min-height:0;}
+.fb-choice{border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .12s;border:3px solid transparent;position:relative;min-height:0;}
 .fb-choice:active{transform:scale(.96);}
 .fb-choice img{width:100%;height:100%;object-fit:cover;display:block;}
 .fb-choice.correct{border-color:var(--success);}
@@ -139,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .hvilken-top{padding:12px 16px 8px;text-align:center;}
 .hvilken-score{font-size:14px;color:var(--text-light);font-weight:600;}
 .hvilken-prompt{font-size:17px;font-weight:700;margin-top:4px;}
-.hvilken-grid{display:grid;gap:10px;padding:8px 14px 16px;flex:1;}
+.hvilken-grid{display:grid;gap:10px;padding:8px 14px 16px;flex:1;min-height:0;}
 .hv-wrap{position:relative;border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .12s;}
 .hv-wrap:active{transform:scale(.97);}
 .hv-img{width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:1;}
@@ -298,7 +301,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="screen" id="screen-finn-par">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
     <div class="fp-info" id="fpInfo" style="margin-bottom:0"></div>
-    <button class="btn btn-secondary btn-sm" id="fpAudioBtn" onclick="toggleFpAudio()" style="font-size:18px;padding:6px 10px;">🔊</button>
+    <button class="btn btn-secondary btn-sm" id="fpAudioBtn" onclick="toggleFpAudio()" style="font-size:18px;padding:6px 10px;" title="Lyd av/på">🔊</button>
   </div>
   <div class="fp-grid" id="fpGrid"></div>
 </div>
@@ -310,9 +313,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="fb-score" id="fbScore"></div>
   </div>
   <div class="fb-grid" id="fbGrid"></div>
-  <div style="margin-top:16px;">
-    <button class="btn btn-ghost btn-full" onclick="fbSpeak()">🔊 Hør ordet igjen</button>
-  </div>
 </div>
 
 <!-- ── SCREEN: HVILKEN ── -->
@@ -922,6 +922,7 @@ function solSpeak() {
    FINN PAR
    ============================================================ */
 function initFinnPar() {
+  resetFpAudio();
   const withImg = _selectedSet.cards.filter(c => c.image);
   const n = Math.min(_gameCount || 4, withImg.length);
   if (n < 2) { toast('Trenger minst 2 kort med bilder for Finn par', 'error'); return; }
@@ -940,7 +941,9 @@ function renderFinnPar() {
   const n = _fpTiles.length;
   const cols = n <= 8 ? 4 : 4;
   const grid = document.getElementById('fpGrid');
+  const rows = Math.ceil(_fpTiles.length / cols);
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
   document.getElementById('fpInfo').textContent = `${_fpMatched.size / 2} av ${n / 2} par funnet`;
   grid.innerHTML = _fpTiles.map((card, i) => {
     const isFlipped = _fpFlipped.includes(i) || _fpMatched.has(i);
@@ -955,10 +958,15 @@ function renderFinnPar() {
   }).join('');
 }
 
-let _fpAudio = false;
+let _fpAudio = true;
 function toggleFpAudio() {
   _fpAudio = !_fpAudio;
   document.getElementById('fpAudioBtn').textContent = _fpAudio ? '🔊' : '🔇';
+}
+function resetFpAudio() {
+  _fpAudio = true;
+  const btn = document.getElementById('fpAudioBtn');
+  if (btn) btn.textContent = '🔊';
 }
 
 function fpTap(i) {
@@ -1015,7 +1023,7 @@ function renderFinnBildet() {
   document.getElementById('fbWord').textContent = correct.text;
   document.getElementById('fbScore').textContent = `${_fbIdx + 1} / ${_fbTotal}`;
   document.getElementById('fbGrid').innerHTML = choices.map(c =>
-    `<div class="fb-choice" onclick="fbPick('${c.id}','${correct.id}',this)">
+    `<div class="fb-choice" data-id="${c.id}" onclick="fbPick('${c.id}','${correct.id}',this)">
       <img src="${c.image}" alt="">
     </div>`).join('');
   if (correct.tts !== false && correct.text) speakText(correct.text);
@@ -1034,7 +1042,13 @@ function fbPick(chosenId, correctId, el) {
     el.classList.add('wrong');
     el.classList.add('shake');
     setTimeout(() => el.classList.remove('shake'), 400);
-    setTimeout(() => { _fbIdx++; renderFinnBildet(); }, 1200);
+    // Re-enable clicks so student can try again
+    setTimeout(() => {
+      el.classList.remove('wrong');
+      grid.querySelectorAll('.fb-choice').forEach(b => {
+        b.onclick = () => fbPick(b.dataset.id, correctId, b);
+      });
+    }, 600);
   }
 }
 
@@ -1445,7 +1459,15 @@ async function buildAiSet() {
     if (pixKey) {
       try {
         const searchWord = w.word.replace(/^(en|ei|et)\s+/i, '');
-        const res = await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(pixKey)}&q=${encodeURIComponent(searchWord)}&image_type=photo&per_page=3&lang=no`);
+        // Translate to English for better Pixabay results
+        let searchQuery = searchWord;
+        try {
+          const eng = await geminiRequest(null, { contents: [{ parts: [
+            { text: `Translate this Norwegian word to English. One word only, no explanation: "${searchWord}"` }
+          ]}]});
+          if (eng && eng.trim().split(' ').length <= 3) searchQuery = eng.trim();
+        } catch(e) { /* use original */ }
+        const res = await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(pixKey)}&q=${encodeURIComponent(searchQuery)}&image_type=photo&per_page=5&safesearch=true`);
         const data = await res.json();
         if (data.hits && data.hits.length) {
           const imgUrl = data.hits[0].webformatURL;
@@ -1628,10 +1650,28 @@ async function doImgSearch() {
   const el = document.getElementById('imgSearchResults');
   el.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   try {
-    const url = `https://pixabay.com/api/?key=${encodeURIComponent(apiKey)}&q=${encodeURIComponent(q)}&image_type=photo&per_page=18&safesearch=true`;
-    const data = await fetch(url).then(r => r.json());
-    if (!data.hits?.length) { el.innerHTML = '<div style="color:var(--text-light);text-align:center;padding:12px">Ingen bilder funnet</div>'; return; }
-    el.innerHTML = data.hits.map(h =>
+    // Try to translate query to English for better results
+    let engQ = q;
+    try {
+      const eng = await geminiRequest(null, { contents: [{ parts: [
+        { text: `Translate to English, one word or short phrase only, no explanation: "${q}"` }
+      ]}]});
+      if (eng && eng.trim()) engQ = eng.trim();
+    } catch(e) { /* use original */ }
+
+    const fetchPix = async (query) => {
+      const url = `https://pixabay.com/api/?key=${encodeURIComponent(apiKey)}&q=${encodeURIComponent(query)}&image_type=photo&per_page=18&safesearch=true`;
+      return fetch(url).then(r => r.json());
+    };
+
+    // Fetch both queries if they differ, merge and deduplicate
+    const results = [await fetchPix(q)];
+    if (engQ.toLowerCase() !== q.toLowerCase()) results.push(await fetchPix(engQ));
+    const seen = new Set();
+    const hits = results.flatMap(d => d.hits || []).filter(h => { if (seen.has(h.id)) return false; seen.add(h.id); return true; }).slice(0, 24);
+
+    if (!hits.length) { el.innerHTML = '<div style="color:var(--text-light);text-align:center;padding:12px">Ingen bilder funnet</div>'; return; }
+    el.innerHTML = hits.map(h =>
       `<div class="img-result" onclick="pickPixabayImg('${h.webformatURL}')">
         <img src="${h.previewURL}" loading="lazy" alt="">
       </div>`).join('');
