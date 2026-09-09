@@ -672,11 +672,21 @@ function playWrong() {
   } catch(e) {}
 }
 
+function getBestVoice() {
+  const voices = window.speechSynthesis?.getVoices() || [];
+  // Prefer Nora, then any Norwegian voice, then default
+  return voices.find(v => v.name.includes('Nora'))
+      || voices.find(v => v.lang.startsWith('nb') || v.lang.startsWith('nn') || v.lang.startsWith('no'))
+      || null;
+}
+
 function speakText(text) {
   if (!text || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'nb-NO'; u.rate = 0.9;
+  const v = getBestVoice();
+  if (v) u.voice = v;
   window.speechSynthesis.speak(u);
 }
 
@@ -972,7 +982,7 @@ function resetFpAudio() {
 function fpTap(i) {
   if (_fpLocked || _fpFlipped.includes(i) || _fpMatched.has(i)) return;
   _fpFlipped.push(i);
-  if (_fpAudio && _fpTiles[i].text) speak(_fpTiles[i].text);
+  if (_fpAudio && _fpTiles[i].text) speakText(_fpTiles[i].text);
   renderFinnPar();
   if (_fpFlipped.length === 2) {
     _fpMoves++;
@@ -1656,7 +1666,7 @@ async function doImgSearch() {
       const eng = await geminiRequest(null, { contents: [{ parts: [
         { text: `Translate to English, one word or short phrase only, no explanation: "${q}"` }
       ]}]});
-      if (eng && eng.trim()) engQ = eng.trim();
+      if (eng) { const cleaned = eng.trim().replace(/["""''.,!?]/g, '').trim(); if (cleaned) engQ = cleaned; }
     } catch(e) { /* use original */ }
 
     const fetchPix = async (query) => {
@@ -1671,8 +1681,10 @@ async function doImgSearch() {
     const hits = results.flatMap(d => d.hits || []).filter(h => { if (seen.has(h.id)) return false; seen.add(h.id); return true; }).slice(0, 24);
 
     if (!hits.length) { el.innerHTML = '<div style="color:var(--text-light);text-align:center;padding:12px">Ingen bilder funnet</div>'; return; }
-    el.innerHTML = hits.map(h =>
-      `<div class="img-result" onclick="pickPixabayImg('${h.webformatURL}')">
+    // Store URLs in a temporary map to avoid quoting issues in onclick
+    window._pixHits = hits;
+    el.innerHTML = hits.map((h, i) =>
+      `<div class="img-result" onclick="pickPixabayImg(window._pixHits[${i}].webformatURL)">
         <img src="${h.previewURL}" loading="lazy" alt="">
       </div>`).join('');
   } catch(err) { el.innerHTML = `<div style="color:var(--danger);padding:12px">${esc(err.message)}</div>`; }
