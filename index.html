@@ -1461,6 +1461,28 @@ async function buildAiSet() {
   document.getElementById('aiSetBuilding').style.display = '';
   const prog = document.getElementById('aiSetProgress');
 
+  // Batch-translate all words to English in one Gemini call
+  prog.textContent = 'Oversetter ord…';
+  const wordList = chosen.map(w => w.word.replace(/^(en|ei|et)\s+/i, ''));
+  let searchQueries = [...wordList];
+  try {
+    const engText = await geminiRequest(null, { contents: [{ parts: [
+      { text: `Translate each of these Norwegian words to English. Return one English word per line in the same order, nothing else:\n${wordList.join('\n')}` }
+    ]}]});
+    if (engText) {
+      const lines = engText.trim().split('\n').map(l => l.trim().replace(/["""''.,!?0-9.\-]/g, '').trim()).filter(Boolean);
+      if (lines.length === wordList.length) searchQueries = lines;
+    }
+  } catch(e) { /* use Norwegian */ }
+
+  // Helper: fetch with timeout
+  async function fetchWithTimeout(url, ms = 8000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    try { return await fetch(url, { signal: ctrl.signal }); }
+    finally { clearTimeout(timer); }
+  }
+
   const cards = [];
   for (let i = 0; i < chosen.length; i++) {
     const w = chosen[i];
@@ -1468,26 +1490,16 @@ async function buildAiSet() {
     let image = null;
     if (pixKey) {
       try {
-        const searchWord = w.word.replace(/^(en|ei|et)\s+/i, '');
-        // Translate to English for better Pixabay results
-        let searchQuery = searchWord;
-        try {
-          const eng = await geminiRequest(null, { contents: [{ parts: [
-            { text: `Translate this Norwegian word to English. One word only, no explanation: "${searchWord}"` }
-          ]}]});
-          if (eng && eng.trim().split(' ').length <= 3) searchQuery = eng.trim();
-        } catch(e) { /* use original */ }
-        const res = await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(pixKey)}&q=${encodeURIComponent(searchQuery)}&image_type=photo&per_page=5&safesearch=true`);
+        const res = await fetchWithTimeout(`https://pixabay.com/api/?key=${encodeURIComponent(pixKey)}&q=${encodeURIComponent(searchQueries[i])}&image_type=photo&per_page=5&safesearch=true`);
         const data = await res.json();
         if (data.hits && data.hits.length) {
           const imgUrl = data.hits[0].webformatURL;
-          // Convert to base64 so image doesn't expire
           try {
-            const imgRes = await fetch(imgUrl);
+            const imgRes = await fetchWithTimeout(imgUrl);
             const blob = await imgRes.blob();
             image = await new Promise(r => { const fr = new FileReader(); fr.onload = e => r(e.target.result); fr.readAsDataURL(blob); });
             image = await compressImg(image, 600, 600);
-          } catch(e) { image = imgUrl; } // fallback to URL if conversion fails
+          } catch(e) { image = imgUrl; }
         }
       } catch(e) { /* skip image */ }
     }
