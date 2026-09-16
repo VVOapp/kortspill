@@ -360,9 +360,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="win-icon">🎉</div>
     <div class="win-title" id="winTitle">Bra jobbet!</div>
     <div class="win-sub" id="winSub"></div>
-    <button class="btn btn-primary btn-lg btn-full" onclick="showScreen('home')">🏠 Hjem</button>
+    <button class="btn btn-primary btn-lg btn-full" id="winPlayAgain" onclick="playAgain()">🔄 Spill igjen</button>
     <div style="margin-top:12px;">
-      <button class="btn btn-ghost btn-full" id="winPlayAgain" onclick="playAgain()">🔄 Spill igjen</button>
+      <button class="btn btn-ghost btn-full" onclick="showScreen('game-pick')">🎮 Velg spill</button>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-ghost btn-full" onclick="showScreen('home')">🏠 Hjem</button>
     </div>
   </div>
 </div>
