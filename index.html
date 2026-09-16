@@ -129,7 +129,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* FINN BILDET */
 .fb-header{text-align:center;padding:12px 0 10px;flex-shrink:0;}
-.fb-word{font-size:28px;font-weight:900;margin-bottom:4px;}
+.fb-word{font-size:32px;font-weight:900;background:var(--primary);color:#fff;border:none;cursor:pointer;font-family:inherit;padding:14px 28px;border-radius:var(--radius);box-shadow:0 4px 14px rgba(74,144,217,.4);transition:transform .12s,background .15s;display:inline-flex;align-items:center;gap:10px;}
+.fb-word:active{transform:scale(.96);background:var(--primary-dark);}
+.fb-word::after{content:'🔊';font-size:22px;}
 .fb-score{font-size:14px;color:var(--text-light);}
 .fb-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;flex:1;min-height:0;}
 .fb-choice{border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .12s;border:3px solid transparent;position:relative;min-height:0;}
@@ -309,7 +311,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- ── SCREEN: FINN BILDET ── -->
 <div class="screen" id="screen-finn-bildet">
   <div class="fb-header">
-    <div class="fb-word" id="fbWord"></div>
+    <button class="fb-word" id="fbWord" onclick="fbSpeak()" title="Trykk for å høre ordet"></button>
     <div class="fb-score" id="fbScore"></div>
   </div>
   <div class="fb-grid" id="fbGrid"></div>
@@ -878,7 +880,7 @@ function pickCount(gameType) {
   const isPar = gameType === 'finn-par';
   document.getElementById('countTitle').textContent = isPar ? 'Finn par — antall par' : 'Hvilken — antall bilder';
   document.getElementById('countSub').textContent = isPar ? 'Velg hvor mange par du vil finne' : 'Velg hvor mange bilder som vises';
-  const opts = isPar ? [3,4,6] : [3,4,6];
+  const opts = isPar ? [3,4,6,8,10,12] : [3,4,6];
   document.getElementById('countGrid').innerHTML = opts.map(n =>
     `<button class="count-btn" onclick="startGameWithCount(${n})">${n}</button>`).join('');
   showScreen('count-pick');
