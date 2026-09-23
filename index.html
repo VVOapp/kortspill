@@ -4,7 +4,40 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kortspill">
 <title>VVO Kortspill</title>
+<link id="faviconLink" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%234D96FF'/%3E%3Cstop offset='100%25' stop-color='%23C77DFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23bg)'/%3E%3Crect x='10' y='32' width='48' height='58' rx='7' fill='%23FF6B6B' transform='rotate(-18 34 61)'/%3E%3Crect x='20' y='26' width='48' height='58' rx='7' fill='%236BCB77' transform='rotate(-6 44 55)'/%3E%3Crect x='30' y='20' width='48' height='58' rx='7' fill='white' transform='rotate(7 54 49)'/%3E%3Ctext x='54' y='57' font-size='28' text-anchor='middle' font-family='serif' transform='rotate(7 54 52)'%3E%E2%AD%90%3C/text%3E%3C/svg%3E">
+<link id="appleTouchIcon" rel="apple-touch-icon" href="">
+<script>
+(function(){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#4D96FF"/>
+        <stop offset="100%" stop-color="#C77DFF"/>
+      </linearGradient>
+    </defs>
+    <rect width="180" height="180" rx="40" fill="url(#bg)"/>
+    <rect x="18" y="58" width="86" height="104" rx="13" fill="#FF6B6B" transform="rotate(-18 61 110)"/>
+    <rect x="36" y="47" width="86" height="104" rx="13" fill="#6BCB77" transform="rotate(-6 79 99)"/>
+    <rect x="54" y="36" width="86" height="104" rx="13" fill="white" transform="rotate(7 97 88)"/>
+    <text x="97" y="103" font-size="50" text-anchor="middle" font-family="serif" transform="rotate(7 97 95)">⭐</text>
+  </svg>`;
+  const img = new Image();
+  const blob = new Blob([svg], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  img.onload = function(){
+    const c = document.createElement('canvas');
+    c.width = 180; c.height = 180;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, 180, 180);
+    URL.revokeObjectURL(url);
+    document.getElementById('appleTouchIcon').href = c.toDataURL('image/png');
+  };
+  img.src = url;
+})();
+</script>
 <style>
 :root {
   --primary:#4A90D9; --primary-dark:#2c6fad; --primary-light:#e8f2fc;
@@ -222,10 +255,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .img-search-bar{display:flex;gap:8px;margin-bottom:12px;}
 .img-search-input{flex:1;padding:10px 13px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;outline:none;}
 .img-search-input:focus{border-color:var(--primary);}
-.img-search-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:320px;overflow-y:auto;}
-.img-result{aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer;}
+.img-search-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:380px;overflow-y:auto;}
+.img-result{aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .1s;}
+.img-result:hover{border-color:var(--primary);transform:scale(1.04);}
 .img-result img{width:100%;height:100%;object-fit:cover;display:block;}
 .img-result:active{opacity:.7;}
+
+/* IMAGE CROP MODAL */
+.crop-modal-box{max-width:500px;width:100%;}
+.crop-viewport{width:100%;aspect-ratio:4/3;border-radius:var(--radius-sm);overflow:hidden;background:#000;position:relative;cursor:grab;touch-action:none;user-select:none;}
+.crop-viewport:active{cursor:grabbing;}
+.crop-viewport img{position:absolute;transform-origin:top left;will-change:transform;}
+.crop-controls{display:flex;align-items:center;gap:10px;margin:12px 0 4px;}
+.crop-zoom-label{font-size:13px;font-weight:600;color:var(--text-light);white-space:nowrap;}
+.crop-zoom-slider{flex:1;accent-color:var(--primary);}
+.crop-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
 
 /* SPINNER */
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;}
@@ -268,7 +312,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="game-grid">
     <button class="game-btn" onclick="startGame('se-og-laer')"><span class="game-icon">👁️</span><span class="game-name">Se og lær</span></button>
     <button class="game-btn" onclick="pickCount('finn-par')"><span class="game-icon">🔁</span><span class="game-name">Finn par</span></button>
-    <button class="game-btn" onclick="startGame('finn-bildet')"><span class="game-icon">🎯</span><span class="game-name">Finn bildet</span></button>
+    <button class="game-btn" onclick="pickCount('finn-bildet')"><span class="game-icon">🎯</span><span class="game-name">Finn bildet</span></button>
     <button class="game-btn" onclick="pickCount('hvilken')"><span class="game-icon">🤔</span><span class="game-name">Hvilken hører ikke til?</span></button>
     <button class="game-btn" onclick="startGame('hva-er-dette')" style="grid-column:span 2"><span class="game-icon">📸</span><span class="game-name">Hva er dette?</span></button>
   </div>
@@ -491,7 +535,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- ── IMAGE SEARCH MODAL ── -->
 <div class="modal-overlay" id="imgSearchModal" onclick="if(event.target===this)closeImgSearch()">
-  <div class="modal-box" style="max-width:420px">
+  <div class="modal-box" style="max-width:520px">
     <div class="modal-title">🔍 Søk etter bilde</div>
     <div class="img-search-bar">
       <input class="img-search-input" id="imgSearchInput" placeholder="Søk…" autocomplete="off" onkeydown="if(event.key==='Enter')doImgSearch()">
@@ -499,6 +543,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div id="imgSearchResults" class="img-search-grid"></div>
     <button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="closeImgSearch()">Avbryt</button>
+  </div>
+</div>
+
+<!-- ── IMAGE CROP MODAL ── -->
+<div class="modal-overlay" id="imgCropModal" onclick="if(event.target===this)closeCrop(false)">
+  <div class="modal-box crop-modal-box">
+    <div class="modal-title">✂️ Tilpass bilde</div>
+    <div class="crop-viewport" id="cropViewport">
+      <img id="cropImg" src="" alt="" draggable="false">
+    </div>
+    <div class="crop-controls">
+      <span class="crop-zoom-label">Zoom</span>
+      <input type="range" class="crop-zoom-slider" id="cropZoom" min="100" max="300" value="100" oninput="cropApplyZoom()">
+    </div>
+    <p style="font-size:12px;color:var(--text-light);text-align:center;margin:4px 0 0">Dra bildet for å flytte det • Bruk glidebryteren for å zoome</p>
+    <div class="crop-btns">
+      <button class="btn btn-ghost" onclick="closeCrop(false)">Avbryt</button>
+      <button class="btn btn-primary" onclick="closeCrop(true)">Bruk bilde</button>
+    </div>
   </div>
 </div>
 
@@ -659,6 +722,42 @@ function playCorrect() {
       gain.gain.linearRampToValueAtTime(0.25, t + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
       osc.start(t); osc.stop(t + 0.35);
+    });
+  } catch(e) {}
+}
+function playWin() {
+  try {
+    const ctx = getAudioCtx();
+    // Fanfare: ascending arpeggio then a big chord swell
+    const melody = [
+      {f:523,t:0.00,dur:0.15},{f:659,t:0.13,dur:0.15},{f:784,t:0.26,dur:0.15},
+      {f:1047,t:0.39,dur:0.25},{f:988,t:0.52,dur:0.15},{f:1047,t:0.62,dur:0.4},
+      {f:1175,t:0.72,dur:0.5}
+    ];
+    melody.forEach(({f,t,dur}) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+      const at = ctx.currentTime + t;
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(0.28, at + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + dur);
+      osc.start(at); osc.stop(at + dur);
+    });
+    // Shimmer: high sparkle notes
+    [2093,2637,3136].forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const at = ctx.currentTime + 0.65 + i * 0.1;
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(0.1, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + 0.3);
+      osc.start(at); osc.stop(at + 0.3);
     });
   } catch(e) {}
 }
@@ -881,9 +980,18 @@ function showGamePick() {
 function pickCount(gameType) {
   _pendingGameType = gameType;
   const isPar = gameType === 'finn-par';
-  document.getElementById('countTitle').textContent = isPar ? 'Finn par — antall par' : 'Hvilken — antall bilder';
-  document.getElementById('countSub').textContent = isPar ? 'Velg hvor mange par du vil finne' : 'Velg hvor mange bilder som vises';
-  const opts = isPar ? [3,4,6,8,10,12] : [3,4,6];
+  const isBildet = gameType === 'finn-bildet';
+  if (isPar) {
+    document.getElementById('countTitle').textContent = 'Finn par — antall par';
+    document.getElementById('countSub').textContent = 'Velg hvor mange par du vil finne';
+  } else if (isBildet) {
+    document.getElementById('countTitle').textContent = 'Finn bildet — antall bilder';
+    document.getElementById('countSub').textContent = 'Velg hvor mange bilder som vises per oppgave';
+  } else {
+    document.getElementById('countTitle').textContent = 'Hvilken — antall bilder';
+    document.getElementById('countSub').textContent = 'Velg hvor mange bilder som vises per runde';
+  }
+  const opts = isPar ? [3,4,6,8,10,12] : isBildet ? [2,4,6] : [3,4,6];
   document.getElementById('countGrid').innerHTML = opts.map(n =>
     `<button class="count-btn" onclick="startGameWithCount(${n})">${n}</button>`).join('');
   showScreen('count-pick');
@@ -1003,6 +1111,7 @@ function fpTap(i) {
         setTimeout(() => {
           document.getElementById('winTitle').textContent = 'Alle par funnet! 🎉';
           document.getElementById('winSub').textContent = `${_fpMoves} forsøk`;
+          playWin();
           showScreen('win');
         }, 500);
       }
@@ -1028,11 +1137,12 @@ function renderFinnBildet() {
   if (_fbIdx >= _fbCards.length) {
     document.getElementById('winTitle').textContent = 'Bra jobbet! 🎉';
     document.getElementById('winSub').textContent = `${_fbCorrect} av ${_fbTotal} riktige`;
-    showScreen('win'); return;
+    playWin(); showScreen('win'); return;
   }
   const correct = _fbCards[_fbIdx];
   const others = _fbCards.filter((_, i) => i !== _fbIdx);
-  const distractors = pick(others, Math.min(3, others.length));
+  const numChoices = Math.max(2, _gameCount || 4);
+  const distractors = pick(others, Math.min(numChoices - 1, others.length));
   const choices = shuffle([correct, ...distractors]);
 
   document.getElementById('fbWord').textContent = correct.text;
@@ -1079,7 +1189,14 @@ async function initHvilken() {
   await runHvilkenRound();
 }
 
+const HV_MAX_ROUNDS = 10;
+
 async function runHvilkenRound() {
+  if (_hvRound >= HV_MAX_ROUNDS) {
+    document.getElementById('winTitle').textContent = 'Ferdig! 🎉';
+    document.getElementById('winSub').textContent = `${_hvScore} av ${HV_MAX_ROUNDS} riktige`;
+    playWin(); showScreen('win'); return;
+  }
   const n = _hvCount || _gameCount || 4;
   _hvCount = n;
   const mainCards = (_selectedSet.cards || []).filter(c => c.image);
@@ -1131,7 +1248,7 @@ async function runHvilkenRound() {
 function renderHvilken() {
   const n = _hvCards.length;
   const cols = n === 4 ? 2 : 3;
-  document.getElementById('hvScore').textContent = `Runde ${_hvRound} · ${_hvScore} riktige`;
+  document.getElementById('hvScore').textContent = `Runde ${_hvRound} av ${HV_MAX_ROUNDS} · ${_hvScore} riktige`;
   const grid = document.getElementById('hvGrid');
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   grid.innerHTML = _hvCards.map((c, i) =>
@@ -1631,10 +1748,7 @@ function ecClearImg() { _workingCardImg = null; renderEditCard(); }
 function ecFileUpload(input) {
   const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = async e => {
-    _workingCardImg = await compressImg(e.target.result);
-    renderEditCard();
-  };
+  reader.onload = e => openCrop(e.target.result);
   reader.readAsDataURL(file);
   input.value = '';
 }
@@ -1644,26 +1758,28 @@ function openCamera() { document.getElementById('ecCameraInput').click(); }
 function ecCameraCapture(input) {
   const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = async e => {
-    _workingCardImg = await compressImg(e.target.result);
-    renderEditCard();
-    // Try AI identification
-    if (!document.getElementById('ecText').value) {
-      toast('AI identifiserer…');
-      try {
-        const word = await geminiIdentify(_workingCardImg);
-        if (word) { document.getElementById('ecText').value = word; toast(`AI foreslår: ${word}`, 'success'); }
-      } catch {}
-    }
-  };
+  reader.onload = e => openCrop(e.target.result, true);
   reader.readAsDataURL(file);
   input.value = '';
+}
+
+async function _ecCameraAiIdentify() {
+  if (!_workingCardImg) return;
+  if (!document.getElementById('ecText').value) {
+    toast('AI identifiserer…');
+    try {
+      const word = await geminiIdentify(_workingCardImg);
+      if (word) { document.getElementById('ecText').value = word; toast(`AI foreslår: ${word}`, 'success'); }
+    } catch {}
+  }
 }
 
 /* ============================================================
    IMAGE SEARCH (PIXABAY)
    ============================================================ */
 function openImgSearch() {
+  document.getElementById('imgSearchInput').value = '';
+  document.getElementById('imgSearchResults').innerHTML = '';
   document.getElementById('imgSearchModal').classList.add('open');
   setTimeout(() => document.getElementById('imgSearchInput').focus(), 100);
 }
@@ -1714,13 +1830,117 @@ async function pickPixabayImg(url) {
     const resp = await fetch(url);
     const blob = await resp.blob();
     const reader = new FileReader();
-    reader.onload = async e => {
-      _workingCardImg = await compressImg(e.target.result);
-      renderEditCard();
-      toast('Bilde valgt ✓', 'success');
-    };
+    reader.onload = e => openCrop(e.target.result);
     reader.readAsDataURL(blob);
   } catch { toast('Kunne ikke laste bildet', 'error'); }
+}
+
+/* ── CROP / POSITION MODAL ── */
+let _cropDataUrl = null;
+let _cropX = 0, _cropY = 0, _cropScale = 1;
+let _cropDrag = null;
+let _cropIsCamera = false;
+
+function openCrop(dataUrl, isCamera = false) {
+  _cropIsCamera = isCamera;
+  _cropDataUrl = dataUrl;
+  _cropX = 0; _cropY = 0; _cropScale = 1;
+  const img = document.getElementById('cropImg');
+  const zoom = document.getElementById('cropZoom');
+  zoom.value = 100;
+  img.src = dataUrl;
+  img.onload = () => {
+    cropCenter();
+    cropApplyTransform();
+  };
+  document.getElementById('imgCropModal').classList.add('open');
+  setupCropDrag();
+}
+
+function cropCenter() {
+  const vp = document.getElementById('cropViewport');
+  const img = document.getElementById('cropImg');
+  const vw = vp.clientWidth, vh = vp.clientHeight;
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const fitScale = Math.max(vw / iw, vh / ih) * _cropScale;
+  const displayW = iw * fitScale, displayH = ih * fitScale;
+  _cropX = (vw - displayW) / 2;
+  _cropY = (vh - displayH) / 2;
+}
+
+function cropApplyZoom() {
+  const prev = _cropScale;
+  _cropScale = document.getElementById('cropZoom').value / 100;
+  const vp = document.getElementById('cropViewport');
+  const cx = vp.clientWidth / 2, cy = vp.clientHeight / 2;
+  _cropX = cx - (_cropScale / prev) * (cx - _cropX);
+  _cropY = cy - (_cropScale / prev) * (cy - _cropY);
+  cropClamp();
+  cropApplyTransform();
+}
+
+function cropApplyTransform() {
+  const vp = document.getElementById('cropViewport');
+  const img = document.getElementById('cropImg');
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const baseScale = Math.max(vp.clientWidth / iw, vp.clientHeight / ih);
+  const s = baseScale * _cropScale;
+  img.style.transform = `translate(${_cropX}px,${_cropY}px) scale(${s})`;
+  img.style.width = iw + 'px';
+  img.style.height = ih + 'px';
+}
+
+function cropClamp() {
+  const vp = document.getElementById('cropViewport');
+  const img = document.getElementById('cropImg');
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const baseScale = Math.max(vp.clientWidth / iw, vp.clientHeight / ih);
+  const s = baseScale * _cropScale;
+  const dw = iw * s, dh = ih * s;
+  const vw = vp.clientWidth, vh = vp.clientHeight;
+  if (dw >= vw) { _cropX = Math.min(0, Math.max(vw - dw, _cropX)); }
+  else { _cropX = (vw - dw) / 2; }
+  if (dh >= vh) { _cropY = Math.min(0, Math.max(vh - dh, _cropY)); }
+  else { _cropY = (vh - dh) / 2; }
+}
+
+function setupCropDrag() {
+  const vp = document.getElementById('cropViewport');
+  vp.onpointerdown = e => {
+    e.preventDefault();
+    vp.setPointerCapture(e.pointerId);
+    _cropDrag = { x: e.clientX, y: e.clientY };
+  };
+  vp.onpointermove = e => {
+    if (!_cropDrag) return;
+    _cropX += e.clientX - _cropDrag.x;
+    _cropY += e.clientY - _cropDrag.y;
+    _cropDrag = { x: e.clientX, y: e.clientY };
+    cropClamp();
+    cropApplyTransform();
+  };
+  vp.onpointerup = vp.onpointercancel = () => { _cropDrag = null; };
+}
+
+async function closeCrop(save) {
+  document.getElementById('imgCropModal').classList.remove('open');
+  if (!save) return;
+  // Render the visible crop area to a canvas and save
+  const vp = document.getElementById('cropViewport');
+  const img = document.getElementById('cropImg');
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const baseScale = Math.max(vp.clientWidth / iw, vp.clientHeight / ih);
+  const s = baseScale * _cropScale;
+  const canvas = document.createElement('canvas');
+  canvas.width = vp.clientWidth * 2; canvas.height = vp.clientHeight * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.drawImage(img, _cropX, _cropY, iw * s, ih * s);
+  const cropped = canvas.toDataURL('image/jpeg', 0.85);
+  _workingCardImg = await compressImg(cropped);
+  renderEditCard();
+  toast('Bilde valgt ✓', 'success');
+  if (_cropIsCamera) _ecCameraAiIdentify();
 }
 
 /* ============================================================
