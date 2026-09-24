@@ -152,11 +152,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* FINN PAR */
 .fp-info{text-align:center;font-size:14px;color:var(--text-light);margin-bottom:0;}
 .fp-grid{display:grid;gap:8px;flex:1;min-height:0;}
-.fp-card{background:var(--primary);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .2s;min-height:0;}
+.fp-card{background:var(--primary);border-radius:var(--radius-sm);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .2s;min-height:0;}
 .fp-card.face-up{background:var(--surface);border:2px solid var(--border);}
 .fp-card.matched{opacity:.35;pointer-events:none;}
 .fp-card:active{transform:scale(.95);}
-.fp-card img{width:100%;height:100%;object-fit:cover;}
+.fp-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .fp-card-inner{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;width:100%;height:100%;}
 .fp-word{font-size:11px;font-weight:700;color:var(--text);text-align:center;padding:0 4px;}
 
@@ -166,10 +166,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fb-word:active{transform:scale(.96);background:var(--primary-dark);}
 .fb-word::after{content:'🔊';font-size:22px;}
 .fb-score{font-size:14px;color:var(--text-light);}
-.fb-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;flex:1;min-height:0;}
+.fb-grid{display:grid;gap:10px;flex:1;min-height:0;}
 .fb-choice{border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .12s;border:3px solid transparent;position:relative;min-height:0;}
 .fb-choice:active{transform:scale(.96);}
-.fb-choice img{width:100%;height:100%;object-fit:cover;display:block;}
+.fb-choice img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
 .fb-choice.correct{border-color:var(--success);}
 .fb-choice.wrong{border-color:var(--danger);}
 
@@ -178,9 +178,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .hvilken-score{font-size:14px;color:var(--text-light);font-weight:600;}
 .hvilken-prompt{font-size:17px;font-weight:700;margin-top:4px;}
 .hvilken-grid{display:grid;gap:10px;padding:8px 14px 16px;flex:1;min-height:0;}
-.hv-wrap{position:relative;border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .12s;}
+.hv-wrap{position:relative;border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .12s;min-height:0;}
 .hv-wrap:active{transform:scale(.97);}
-.hv-img{width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:1;}
+.hv-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
 .hv-speak{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
 .shake{animation:shake .4s ease;}
@@ -1147,10 +1147,16 @@ function renderFinnBildet() {
 
   document.getElementById('fbWord').textContent = correct.text;
   document.getElementById('fbScore').textContent = `${_fbIdx + 1} / ${_fbTotal}`;
-  document.getElementById('fbGrid').innerHTML = choices.map(c =>
+  const fbGrid = document.getElementById('fbGrid');
+  const cols = choices.length <= 4 ? 2 : 3;
+  const rows = Math.ceil(choices.length / cols);
+  fbGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  fbGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  fbGrid.innerHTML = choices.map(c =>
     `<div class="fb-choice" data-id="${c.id}" onclick="fbPick('${c.id}','${correct.id}',this)">
       <img src="${c.image}" alt="">
     </div>`).join('');
+
   if (correct.tts !== false && correct.text) speakText(correct.text);
 }
 
@@ -1185,7 +1191,7 @@ function fbSpeak() {
    HVILKEN HORER IKKE TIL
    ============================================================ */
 async function initHvilken() {
-  _hvScore = 0; _hvRound = 0;
+  _hvScore = 0; _hvRound = 0; _hvCount = 0;
   await runHvilkenRound();
 }
 
@@ -1247,10 +1253,12 @@ async function runHvilkenRound() {
 
 function renderHvilken() {
   const n = _hvCards.length;
-  const cols = n === 4 ? 2 : 3;
+  const cols = n <= 4 ? 2 : 3;
+  const rows = Math.ceil(n / cols);
   document.getElementById('hvScore').textContent = `Runde ${_hvRound} av ${HV_MAX_ROUNDS} · ${_hvScore} riktige`;
   const grid = document.getElementById('hvGrid');
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
   grid.innerHTML = _hvCards.map((c, i) =>
     `<div class="hv-wrap" id="hvw-${i}" onclick="hvTap(${i})">
       <img class="hv-img" src="${c.image}" alt="">
