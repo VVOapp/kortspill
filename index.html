@@ -187,6 +187,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
 .pop{animation:pop .3s ease;}
 
+/* SORTER ETTER STØRRELSE */
+#screen-sorter-storrelse,#screen-sorter-grupper{overflow:hidden;display:none;flex-direction:column;}
+#screen-sorter-storrelse.active,#screen-sorter-grupper.active{display:flex;}
+.ss-arena{flex:1;position:relative;min-height:0;overflow:hidden;}
+.ss-shape{position:absolute;cursor:grab;touch-action:none;transition:box-shadow .15s;border-radius:inherit;}
+.ss-shape:active{cursor:grabbing;}
+.ss-shape.circle{border-radius:50%;}
+.ss-numberline{height:90px;display:flex;align-items:center;justify-content:center;padding:0 24px;gap:0;position:relative;flex-shrink:0;}
+.ss-line{position:absolute;left:24px;right:24px;top:50%;height:4px;background:var(--border);border-radius:2px;transform:translateY(-50%);}
+.ss-slots{display:flex;align-items:center;justify-content:space-around;width:100%;position:relative;z-index:1;}
+.ss-slot{border:3px dashed var(--border);background:rgba(0,0,0,.04);border-radius:50%;transition:background .2s,border-color .2s;flex-shrink:0;}
+.ss-slot.over{border-color:var(--primary);background:rgba(74,144,217,.12);}
+.ss-label{font-size:13px;color:var(--text-light);font-weight:700;text-align:center;padding:4px 0 8px;letter-spacing:.04em;}
+/* SORTER I GRUPPER */
+.sg-arena{flex:1;position:relative;min-height:0;overflow:hidden;}
+.sg-card{position:absolute;cursor:grab;touch-action:none;width:100px;height:100px;border-radius:var(--radius-sm);overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.2);border:3px solid transparent;}
+.sg-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+.sg-card:active{cursor:grabbing;}
+.sg-boxes{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 14px;flex-shrink:0;}
+.sg-box{border:3px dashed var(--border);border-radius:var(--radius);padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:90px;transition:background .2s,border-color .2s;background:var(--surface);}
+.sg-box.over{border-color:var(--primary);background:rgba(74,144,217,.1);}
+.sg-box-name{font-size:15px;font-weight:800;text-align:center;}
+.sg-box-speak{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+/* DRAG GHOST */
+.drag-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:.88;transition:none !important;}
 /* HVA ER DETTE */
 .wit-capture{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#111;}
 .wit-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
@@ -315,6 +340,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="game-btn" onclick="pickCount('finn-bildet')"><span class="game-icon">🎯</span><span class="game-name">Finn bildet</span></button>
     <button class="game-btn" onclick="pickCount('hvilken')"><span class="game-icon">🤔</span><span class="game-name">Hvilken hører ikke til?</span></button>
     <button class="game-btn" onclick="startGame('hva-er-dette')" style="grid-column:span 2"><span class="game-icon">📸</span><span class="game-name">Hva er dette?</span></button>
+    <button class="game-btn" onclick="pickCount('sorter-storrelse')"><span class="game-icon">📏</span><span class="game-name">Sorter etter størrelse</span></button>
+    <button class="game-btn" onclick="pickCount('sorter-grupper')"><span class="game-icon">🗂️</span><span class="game-name">Sorter i grupper</span></button>
   </div>
 </div>
 
@@ -368,6 +395,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="hvilken-prompt">Hvilken hører ikke til? 🤔</div>
   </div>
   <div class="hvilken-grid" id="hvGrid"></div>
+</div>
+
+<!-- ── SCREEN: SORTER ETTER STØRRELSE ── -->
+<div class="screen" id="screen-sorter-storrelse">
+  <div class="ss-arena" id="ssArena"></div>
+  <div class="ss-label" id="ssLabel">Minst → Størst</div>
+  <div class="ss-numberline" id="ssNumberline">
+    <div class="ss-line"></div>
+    <div class="ss-slots" id="ssSlots"></div>
+  </div>
+</div>
+
+<!-- ── SCREEN: SORTER I GRUPPER ── -->
+<div class="screen" id="screen-sorter-grupper">
+  <div class="sg-arena" id="sgArena"></div>
+  <div class="sg-boxes" id="sgBoxes"></div>
 </div>
 
 <!-- ── SCREEN: HVA ER DETTE ── -->
@@ -634,6 +677,7 @@ const NAV_TITLES = {
   'home':'VVO Kortspill','game-pick':'Velg spill','count-pick':'',
   'se-og-laer':'Se og lær','finn-par':'Finn par','finn-bildet':'Finn bildet',
   'hvilken':'Hvilken hører ikke til?','hva-er-dette':'Hva er dette?',
+  'sorter-storrelse':'Sorter etter størrelse','sorter-grupper':'Sorter i grupper',
   'win':'','teacher-home':'Mine kortsett','edit-set':'Rediger kortsett',
   'edit-card':'Rediger kort','settings':'Innstillinger'
 };
@@ -892,7 +936,7 @@ function showScreen(name, push = true) {
 
   // Nav right button
   const nr = document.getElementById('navRight');
-  const gamescreens = ['se-og-laer','finn-par','finn-bildet','hvilken','hva-er-dette','win'];
+  const gamescreens = ['se-og-laer','finn-par','finn-bildet','hvilken','hva-er-dette','sorter-storrelse','sorter-grupper','win'];
   if (name === 'teacher-home') { nr.textContent = '⚙️'; nr.style.visibility = ''; }
   else if (name === 'edit-set') { nr.textContent = '💾'; nr.style.visibility = ''; }
   else if (name === 'edit-card') { nr.textContent = '💾'; nr.style.visibility = ''; }
@@ -991,7 +1035,16 @@ function pickCount(gameType) {
     document.getElementById('countTitle').textContent = 'Hvilken — antall bilder';
     document.getElementById('countSub').textContent = 'Velg hvor mange bilder som vises per runde';
   }
-  const opts = isPar ? [3,4,6,8,10,12] : isBildet ? [2,4,6] : [3,4,6];
+  const isStorrelse = gameType === 'sorter-storrelse';
+  const isGrupper = gameType === 'sorter-grupper';
+  if (isStorrelse) {
+    document.getElementById('countTitle').textContent = 'Sorter størrelse — vanskelighet';
+    document.getElementById('countSub').textContent = 'Velg antall former å sortere';
+  } else if (isGrupper) {
+    document.getElementById('countTitle').textContent = 'Sorter i grupper — antall kort';
+    document.getElementById('countSub').textContent = 'Velg antall kort per gruppe';
+  }
+  const opts = isPar ? [3,4,6,8,10,12] : isBildet ? [2,4,6] : isStorrelse ? [3,4,5] : isGrupper ? [3,5,7] : [3,4,6];
   document.getElementById('countGrid').innerHTML = opts.map(n =>
     `<button class="count-btn" onclick="startGameWithCount(${n})">${n}</button>`).join('');
   showScreen('count-pick');
@@ -1009,6 +1062,8 @@ async function startGame(type) {
   else if (type === 'finn-bildet') initFinnBildet();
   else if (type === 'hvilken') await initHvilken();
   else if (type === 'hva-er-dette') initHvaErDette();
+  else if (type === 'sorter-storrelse') initSorterStorrelse();
+  else if (type === 'sorter-grupper') await initSorterGrupper();
 }
 
 /* ============================================================
@@ -2038,6 +2093,320 @@ function saveApiKeys() {
 }
 
 /* ============================================================
+   SHARED DRAG SYSTEM
+   ============================================================ */
+let _drag = null;
+
+function dragStart(e, el) {
+  e.preventDefault();
+  const rect = el.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  const ghost = el.cloneNode(true);
+  ghost.className = ghost.className + ' drag-ghost';
+  ghost.style.width = rect.width + 'px';
+  ghost.style.height = rect.height + 'px';
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  ghost.style.borderRadius = getComputedStyle(el).borderRadius;
+  document.body.appendChild(ghost);
+  el.style.opacity = '0.25';
+  _drag = { el, ghost, offsetX: cx - rect.left, offsetY: cy - rect.top };
+}
+
+function dragMove(e) {
+  if (!_drag) return;
+  e.preventDefault();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  _drag.ghost.style.left = (cx - _drag.offsetX) + 'px';
+  _drag.ghost.style.top = (cy - _drag.offsetY) + 'px';
+}
+
+function dragEnd(e) {
+  if (!_drag) return;
+  const gr = _drag.ghost.getBoundingClientRect();
+  const cx = gr.left + gr.width / 2;
+  const cy = gr.top + gr.height / 2;
+  _drag.ghost.remove();
+  _drag.el.style.opacity = '';
+  const el = _drag.el;
+  _drag = null;
+  if (_gameType === 'sorter-storrelse') ssDropped(el, cx, cy);
+  else if (_gameType === 'sorter-grupper') sgDropped(el, cx, cy);
+}
+
+document.addEventListener('mousemove', dragMove);
+document.addEventListener('touchmove', dragMove, { passive: false });
+document.addEventListener('mouseup', dragEnd);
+document.addEventListener('touchend', dragEnd);
+
+/* ============================================================
+   SORTER ETTER STØRRELSE
+   ============================================================ */
+const SS_SHAPES = ['circle','square','triangle'];
+const SS_COLOURS = { circle:'#4D96FF', square:'#FF6B6B', triangle:'#6BCB77' };
+let _ssItems = []; // [{sizeRank, el}]
+let _ssSlotEls = [];
+let _ssSlotData = []; // sizeRank placed in slot i, or null
+let _ssShapeType = '';
+
+function initSorterStorrelse() {
+  const n = _gameCount || 3;
+  _ssShapeType = SS_SHAPES[Math.floor(Math.random() * SS_SHAPES.length)];
+  _ssSlotData = Array(n).fill(null);
+  _ssItems = [];
+
+  showScreen('sorter-storrelse');
+
+  const arena = document.getElementById('ssArena');
+  const slotsEl = document.getElementById('ssSlots');
+  arena.innerHTML = '';
+  slotsEl.innerHTML = '';
+
+  const arenaRect = arena.getBoundingClientRect();
+  const minSize = 44, maxSize = 44 + (n - 1) * 22;
+  const sizes = Array.from({length: n}, (_, i) => minSize + i * ((maxSize - minSize) / Math.max(n - 1, 1)));
+  const shuffled = [...sizes].sort(() => Math.random() - .5);
+  const colour = SS_COLOURS[_ssShapeType];
+
+  shuffled.forEach((sz, i) => {
+    const sizeRank = sizes.indexOf(sz);
+    const el = document.createElement('div');
+    el.className = 'ss-shape ' + _ssShapeType;
+    el.style.width = sz + 'px';
+    el.style.height = sz + 'px';
+    el.style.background = colour;
+    if (_ssShapeType === 'triangle') {
+      el.style.background = 'none';
+      el.style.width = '0'; el.style.height = '0';
+      el.style.borderLeft = (sz/2) + 'px solid transparent';
+      el.style.borderRight = (sz/2) + 'px solid transparent';
+      el.style.borderBottom = sz + 'px solid ' + colour;
+      el.style.borderRadius = '0';
+    }
+    const pad = 20, cols = Math.ceil(n / 2);
+    const col = i % cols, row = Math.floor(i / cols);
+    const cellW = (arenaRect.width - pad*2) / cols;
+    const cellH = (arenaRect.height - pad*2) / 2;
+    const x = pad + col * cellW + cellW/2 - sz/2 + (Math.random()-0.5)*20;
+    const y = pad + row * cellH + cellH/2 - sz/2 + (Math.random()-0.5)*20;
+    el.style.left = Math.max(4, Math.min(arenaRect.width - sz - 4, x)) + 'px';
+    el.style.top = Math.max(4, Math.min(arenaRect.height - sz - 4, y)) + 'px';
+    el.dataset.rank = sizeRank;
+    el.addEventListener('mousedown', ev => dragStart(ev, el));
+    el.addEventListener('touchstart', ev => dragStart(ev, el), { passive: false });
+    arena.appendChild(el);
+    _ssItems.push({ sizeRank, el });
+  });
+
+  // Build slots
+  const slotSize = minSize + 10;
+  _ssSlotEls = [];
+  for (let i = 0; i < n; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'ss-slot';
+    slot.style.width = slotSize + 'px';
+    slot.style.height = slotSize + 'px';
+    slot.dataset.idx = i;
+    slotsEl.appendChild(slot);
+    _ssSlotEls.push(slot);
+  }
+  document.getElementById('ssLabel').textContent = 'Minst → Størst';
+}
+
+function ssDropped(el, cx, cy) {
+  // Find slot under drop point
+  let targetSlot = null, targetIdx = -1;
+  _ssSlotEls.forEach((slot, i) => {
+    const r = slot.getBoundingClientRect();
+    if (cx >= r.left - 20 && cx <= r.right + 20 && cy >= r.top - 20 && cy <= r.bottom + 20) {
+      targetSlot = slot; targetIdx = i;
+    }
+  });
+  if (targetSlot === null || _ssSlotData[targetIdx] !== null) {
+    // Not over a slot or slot occupied — bounce back (just leave in place)
+    return;
+  }
+  // Place shape in slot
+  const rank = parseInt(el.dataset.rank);
+  _ssSlotData[targetIdx] = rank;
+  el.style.position = '';
+  el.style.left = ''; el.style.top = '';
+  el.style.cursor = 'default';
+  el.removeEventListener('mousedown', dragStart);
+  el.removeEventListener('touchstart', dragStart);
+  targetSlot.appendChild(el);
+  targetSlot.style.border = 'none';
+
+  // Resize shape to fit slot
+  if (_ssShapeType !== 'triangle') {
+    el.style.width = '100%'; el.style.height = '100%';
+  }
+
+  if (_ssSlotData.every(v => v !== null)) ssCheckOrder();
+}
+
+function ssCheckOrder() {
+  // Correct order: slot 0 = rank 0 (smallest), slot n-1 = rank n-1 (largest)
+  const correct = _ssSlotData.every((rank, i) => rank === i);
+  if (correct) {
+    playWin();
+    setTimeout(() => {
+      document.getElementById('winTitle').textContent = 'Riktig rekkefølge! 🎉';
+      document.getElementById('winSub').textContent = 'Du sorterte dem riktig!';
+      showScreen('win');
+    }, 400);
+  } else {
+    // Shake wrong slots and return shapes to arena
+    _ssSlotEls.forEach((slot, i) => {
+      if (_ssSlotData[i] !== i) slot.classList.add('shake');
+    });
+    playWrong();
+    setTimeout(() => {
+      // Return all shapes back to arena and reset
+      const arena = document.getElementById('ssArena');
+      _ssSlotEls.forEach((slot, i) => {
+        slot.classList.remove('shake');
+        slot.style.border = '';
+        const child = slot.querySelector('.ss-shape');
+        if (child) {
+          const arenaRect = arena.getBoundingClientRect();
+          const sz = parseInt(child.dataset.rank) * 22 + 44;
+          child.style.position = 'absolute';
+          child.style.width = sz + 'px'; child.style.height = sz + 'px';
+          child.style.left = (Math.random() * (arenaRect.width - sz - 20) + 10) + 'px';
+          child.style.top = (Math.random() * (arenaRect.height - sz - 20) + 10) + 'px';
+          child.style.cursor = 'grab';
+          child.addEventListener('mousedown', ev => dragStart(ev, child));
+          child.addEventListener('touchstart', ev => dragStart(ev, child), { passive: false });
+          arena.appendChild(child);
+        }
+        _ssSlotData[i] = null;
+      });
+    }, 700);
+  }
+}
+
+/* ============================================================
+   SORTER I GRUPPER
+   ============================================================ */
+let _sgSet1 = null, _sgSet2 = null;
+let _sgCards = []; // [{card, setIdx (0|1), el}]
+let _sgRemaining = 0;
+
+async function initSorterGrupper() {
+  const n = _gameCount || 3;
+  const otherSets = _sets.filter(s => s.id !== _selectedSet.id);
+  if (!otherSets.length) {
+    toast('Trenger minst 2 kortsett for dette spillet', 'error');
+    showScreen('game-pick'); return;
+  }
+
+  // Load full data for both sets
+  try {
+    const full1 = await loadFullSet(_selectedSet.id);
+    const pick2 = otherSets[Math.floor(Math.random() * otherSets.length)];
+    const full2 = await loadFullSet(pick2.id);
+    const cards1 = shuffle((full1?.cards || []).filter(c => c.image)).slice(0, n);
+    const cards2 = shuffle((full2?.cards || []).filter(c => c.image)).slice(0, n);
+
+    if (!cards1.length || !cards2.length) {
+      toast('Begge kortsett trenger bilder', 'error');
+      showScreen('game-pick'); return;
+    }
+
+    _sgSet1 = { id: full1.id, name: _selectedSet.name };
+    _sgSet2 = { id: full2.id, name: pick2.name };
+    _sgRemaining = cards1.length + cards2.length;
+    _sgCards = [
+      ...cards1.map(c => ({ card: c, setIdx: 0 })),
+      ...cards2.map(c => ({ card: c, setIdx: 1 }))
+    ];
+  } catch(e) { toast('Feil ved lasting: ' + e.message, 'error'); return; }
+
+  showScreen('sorter-grupper');
+
+  const arena = document.getElementById('sgArena');
+  const boxes = document.getElementById('sgBoxes');
+  arena.innerHTML = ''; boxes.innerHTML = '';
+
+  // Drop boxes
+  [_sgSet1, _sgSet2].forEach((set, i) => {
+    const box = document.createElement('div');
+    box.className = 'sg-box';
+    box.dataset.setIdx = i;
+    const name = document.createElement('div');
+    name.className = 'sg-box-name';
+    name.textContent = set.name;
+    const speak = document.createElement('button');
+    speak.className = 'sg-box-speak';
+    speak.textContent = '🔊';
+    speak.onclick = () => speakText(set.name);
+    box.appendChild(name);
+    box.appendChild(speak);
+    boxes.appendChild(box);
+  });
+
+  // Scatter cards in arena
+  const arenaRect = arena.getBoundingClientRect();
+  shuffle(_sgCards).forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'sg-card';
+    el.dataset.setIdx = item.setIdx;
+    const img = document.createElement('img');
+    img.src = item.card.image; img.alt = item.card.text || '';
+    el.appendChild(img);
+
+    const cols = 3, col = i % cols, row = Math.floor(i / cols);
+    const cellW = (arenaRect.width - 20) / cols;
+    const cellH = Math.max(110, (arenaRect.height - 20) / Math.ceil(_sgCards.length / cols));
+    el.style.left = (10 + col * cellW + (Math.random()-0.5)*18) + 'px';
+    el.style.top = (10 + row * cellH + (Math.random()-0.5)*18) + 'px';
+
+    el.addEventListener('mousedown', ev => dragStart(ev, el));
+    el.addEventListener('touchstart', ev => dragStart(ev, el), { passive: false });
+    item.el = el;
+    arena.appendChild(el);
+  });
+}
+
+function sgDropped(el, cx, cy) {
+  const boxes = document.querySelectorAll('.sg-box');
+  let target = null;
+  boxes.forEach(box => {
+    const r = box.getBoundingClientRect();
+    if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) target = box;
+  });
+  if (!target) return;
+
+  const droppedSetIdx = parseInt(el.dataset.setIdx);
+  const targetSetIdx = parseInt(target.dataset.setIdx);
+
+  if (droppedSetIdx === targetSetIdx) {
+    // Correct!
+    playCorrect();
+    el.style.transition = 'opacity .3s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+    _sgRemaining--;
+    if (_sgRemaining === 0) {
+      setTimeout(() => {
+        playWin();
+        document.getElementById('winTitle').textContent = 'Bra sortert! 🎉';
+        document.getElementById('winSub').textContent = 'Alle kortene er på rett plass!';
+        showScreen('win');
+      }, 500);
+    }
+  } else {
+    // Wrong — shake and return
+    playWrong();
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 400);
+  }
+}
+
+/* ============================================================
    WIN / PLAY AGAIN
    ============================================================ */
 function playAgain() {
@@ -2045,6 +2414,8 @@ function playAgain() {
   else if (_gameType === 'finn-par') initFinnPar();
   else if (_gameType === 'finn-bildet') initFinnBildet();
   else if (_gameType === 'hvilken') initHvilken();
+  else if (_gameType === 'sorter-storrelse') initSorterStorrelse();
+  else if (_gameType === 'sorter-grupper') initSorterGrupper();
   else showScreen('game-pick');
 }
 
