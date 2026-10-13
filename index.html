@@ -2200,8 +2200,8 @@ function initSorterStorrelse() {
     _ssItems.push({ sizeRank, el });
   });
 
-  // Build slots
-  const slotSize = minSize + 10;
+  // Build slots — sized to fit the largest shape
+  const slotSize = maxSize + 14;
   _ssSlotEls = [];
   for (let i = 0; i < n; i++) {
     const slot = document.createElement('div');
@@ -2213,6 +2213,7 @@ function initSorterStorrelse() {
     _ssSlotEls.push(slot);
   }
   document.getElementById('ssLabel').textContent = 'Minst → Størst';
+  setTimeout(() => speakText('Dra formene i riktig rekkefølge. Minst til venstre, størst til høyre.'), 600);
 }
 
 function ssDropped(el, cx, cy) {
@@ -2231,18 +2232,17 @@ function ssDropped(el, cx, cy) {
   // Place shape in slot
   const rank = parseInt(el.dataset.rank);
   _ssSlotData[targetIdx] = rank;
-  el.style.position = '';
+  el.style.position = 'relative';
   el.style.left = ''; el.style.top = '';
   el.style.cursor = 'default';
+  el.style.margin = 'auto';
   el.removeEventListener('mousedown', dragStart);
   el.removeEventListener('touchstart', dragStart);
+  targetSlot.style.display = 'flex';
+  targetSlot.style.alignItems = 'center';
+  targetSlot.style.justifyContent = 'center';
+  targetSlot.style.border = '3px solid var(--success)';
   targetSlot.appendChild(el);
-  targetSlot.style.border = 'none';
-
-  // Resize shape to fit slot
-  if (_ssShapeType !== 'triangle') {
-    el.style.width = '100%'; el.style.height = '100%';
-  }
 
   if (_ssSlotData.every(v => v !== null)) ssCheckOrder();
 }
