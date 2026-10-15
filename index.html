@@ -197,8 +197,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ss-numberline{height:90px;display:flex;align-items:center;justify-content:center;padding:0 24px;gap:0;position:relative;flex-shrink:0;}
 .ss-line{position:absolute;left:24px;right:24px;top:50%;height:4px;background:var(--border);border-radius:2px;transform:translateY(-50%);}
 .ss-slots{display:flex;align-items:center;justify-content:space-around;width:100%;position:relative;z-index:1;}
-.ss-slot{border:3px dashed var(--border);background:rgba(0,0,0,.04);border-radius:50%;transition:background .2s,border-color .2s;flex-shrink:0;}
-.ss-slot.over{border-color:var(--primary);background:rgba(74,144,217,.12);}
+.ss-slot{border:4px solid #333;background:#222;border-radius:50%;transition:background .2s,border-color .2s;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.ss-slot.over{border-color:var(--primary);background:#1a3a5c;}
+.ss-slot.placed{border-color:var(--success);background:#1a3a2a;}
 .ss-label{font-size:13px;color:var(--text-light);font-weight:700;text-align:center;padding:4px 0 8px;letter-spacing:.04em;}
 /* SORTER I GRUPPER */
 .sg-arena{flex:1;position:relative;min-height:0;overflow:hidden;}
@@ -805,6 +806,21 @@ function playWin() {
     });
   } catch(e) {}
 }
+function playSoftPling() {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.35);
+  } catch(e) {}
+}
 function playWrong() {
   try {
     const ctx = getAudioCtx();
@@ -925,6 +941,14 @@ function currentScreen() { return _history[_history.length - 1]; }
 function showScreen(name, push = true) {
   // Stop camera if leaving hva-er-dette
   if (currentScreen() === 'hva-er-dette' && name !== 'hva-er-dette') witStop();
+  // Kill any in-progress drag ghost
+  if (_drag) {
+    try { _drag.ghost.remove(); } catch {}
+    try { _drag.el.style.opacity = ''; } catch {}
+    _drag = null;
+  }
+  // Remove any stray ghosts
+  document.querySelectorAll('.drag-ghost').forEach(g => g.remove());
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const sc = document.getElementById('screen-' + name);
@@ -2145,7 +2169,7 @@ document.addEventListener('touchend', dragEnd);
    SORTER ETTER STØRRELSE
    ============================================================ */
 const SS_SHAPES = ['circle','square','triangle'];
-const SS_COLOURS = { circle:'#4D96FF', square:'#FF6B6B', triangle:'#6BCB77' };
+const SS_COLOURS = { circle:'#1565C0', square:'#C62828', triangle:'#2E7D32' };
 let _ssItems = []; // [{sizeRank, el}]
 let _ssSlotEls = [];
 let _ssSlotData = []; // sizeRank placed in slot i, or null
@@ -2165,7 +2189,7 @@ function initSorterStorrelse() {
   slotsEl.innerHTML = '';
 
   const arenaRect = arena.getBoundingClientRect();
-  const minSize = 44, maxSize = 44 + (n - 1) * 22;
+  const minSize = 64, maxSize = 64 + (n - 1) * 28;
   const sizes = Array.from({length: n}, (_, i) => minSize + i * ((maxSize - minSize) / Math.max(n - 1, 1)));
   const shuffled = [...sizes].sort(() => Math.random() - .5);
   const colour = SS_COLOURS[_ssShapeType];
@@ -2225,66 +2249,47 @@ function ssDropped(el, cx, cy) {
       targetSlot = slot; targetIdx = i;
     }
   });
-  if (targetSlot === null || _ssSlotData[targetIdx] !== null) {
-    // Not over a slot or slot occupied — bounce back (just leave in place)
+  if (targetSlot === null || _ssSlotData[targetIdx] !== null) return;
+
+  const rank = parseInt(el.dataset.rank);
+  const correct = rank === targetIdx; // slot 0 = smallest (rank 0), etc.
+
+  if (!correct) {
+    // Bounce immediately — shake shape and put it back in arena
+    playWrong();
+    el.classList.add('shake');
+    setTimeout(() => {
+      if (currentScreen() !== 'sorter-storrelse') return;
+      el.classList.remove('shake');
+      const arena = document.getElementById('ssArena');
+      const arenaRect = arena.getBoundingClientRect();
+      const sz = rank * 28 + 64;
+      el.style.left = (Math.random() * (arenaRect.width - sz - 20) + 10) + 'px';
+      el.style.top = (Math.random() * (arenaRect.height - sz - 20) + 10) + 'px';
+      arena.appendChild(el);
+    }, 400);
     return;
   }
-  // Place shape in slot
-  const rank = parseInt(el.dataset.rank);
+
+  // Correct placement
+  playSoftPling();
   _ssSlotData[targetIdx] = rank;
   el.style.position = 'relative';
   el.style.left = ''; el.style.top = '';
   el.style.cursor = 'default';
-  el.style.margin = 'auto';
   el.removeEventListener('mousedown', dragStart);
   el.removeEventListener('touchstart', dragStart);
-  targetSlot.style.display = 'flex';
-  targetSlot.style.alignItems = 'center';
-  targetSlot.style.justifyContent = 'center';
-  targetSlot.style.border = '3px solid var(--success)';
+  targetSlot.classList.add('placed');
   targetSlot.appendChild(el);
 
-  if (_ssSlotData.every(v => v !== null)) ssCheckOrder();
-}
-
-function ssCheckOrder() {
-  // Correct order: slot 0 = rank 0 (smallest), slot n-1 = rank n-1 (largest)
-  const correct = _ssSlotData.every((rank, i) => rank === i);
-  if (correct) {
+  if (_ssSlotData.every(v => v !== null)) {
     playWin();
     setTimeout(() => {
+      if (currentScreen() !== 'sorter-storrelse') return;
       document.getElementById('winTitle').textContent = 'Riktig rekkefølge! 🎉';
       document.getElementById('winSub').textContent = 'Du sorterte dem riktig!';
       showScreen('win');
-    }, 400);
-  } else {
-    // Shake wrong slots and return shapes to arena
-    _ssSlotEls.forEach((slot, i) => {
-      if (_ssSlotData[i] !== i) slot.classList.add('shake');
-    });
-    playWrong();
-    setTimeout(() => {
-      // Return all shapes back to arena and reset
-      const arena = document.getElementById('ssArena');
-      _ssSlotEls.forEach((slot, i) => {
-        slot.classList.remove('shake');
-        slot.style.border = '';
-        const child = slot.querySelector('.ss-shape');
-        if (child) {
-          const arenaRect = arena.getBoundingClientRect();
-          const sz = parseInt(child.dataset.rank) * 22 + 44;
-          child.style.position = 'absolute';
-          child.style.width = sz + 'px'; child.style.height = sz + 'px';
-          child.style.left = (Math.random() * (arenaRect.width - sz - 20) + 10) + 'px';
-          child.style.top = (Math.random() * (arenaRect.height - sz - 20) + 10) + 'px';
-          child.style.cursor = 'grab';
-          child.addEventListener('mousedown', ev => dragStart(ev, child));
-          child.addEventListener('touchstart', ev => dragStart(ev, child), { passive: false });
-          arena.appendChild(child);
-        }
-        _ssSlotData[i] = null;
-      });
-    }, 700);
+    }, 500);
   }
 }
 
