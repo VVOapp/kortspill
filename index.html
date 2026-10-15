@@ -192,6 +192,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #screen-sorter-storrelse.active,#screen-sorter-grupper.active{display:flex;}
 .ss-arena{flex:1;position:relative;min-height:0;overflow:hidden;}
 .ss-shape{position:absolute;cursor:grab;touch-action:none;transition:box-shadow .15s;border-radius:inherit;}
+.ss-slot .ss-shape{position:static;}
 .ss-shape:active{cursor:grabbing;}
 .ss-shape.circle{border-radius:50%;}
 .ss-numberline{height:90px;display:flex;align-items:center;justify-content:center;padding:0 24px;gap:0;position:relative;flex-shrink:0;}
@@ -211,6 +212,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sg-box.over{border-color:var(--primary);background:rgba(74,144,217,.1);}
 .sg-box-name{font-size:15px;font-weight:800;text-align:center;}
 .sg-box-speak{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+/* SORTER FORMER */
+#screen-sorter-former{overflow:hidden;display:none;flex-direction:column;}
+#screen-sorter-former.active{display:flex;}
+.sf-arena{flex:1;position:relative;min-height:0;overflow:hidden;}
+.sf-shape{position:absolute;cursor:grab;touch-action:none;transition:box-shadow .15s;}
+.sf-shape:active{cursor:grabbing;}
+.sf-shape-circle{border-radius:50%;}
+.sf-shape-square{border-radius:8px;}
+.sf-shape-triangle{clip-path:polygon(50% 0%,0% 100%,100% 100%);border-radius:0;}
+.sf-shape-star{clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);}
+.sf-shape-diamond{clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);}
+.sf-slot .sf-shape{position:static;}
+#sfBaskets{display:flex;flex-wrap:wrap;gap:10px;padding:10px 14px;flex-shrink:0;}
+#sfBaskets.corners{position:absolute;inset:0;pointer-events:none;}
+.sf-basket{flex:1;min-width:calc(50% - 10px);border:4px solid;border-radius:var(--radius);padding:10px 8px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface);transition:background .2s;pointer-events:auto;cursor:default;}
+.sf-basket.corner{position:absolute;width:130px;min-width:unset;flex:unset;}
+.sf-basket.corner-tl{top:8px;left:8px;}
+.sf-basket.corner-tr{top:8px;right:8px;}
+.sf-basket.corner-bl{bottom:8px;left:8px;}
+.sf-basket.corner-br{bottom:8px;right:8px;}
+.sf-basket.over{filter:brightness(1.15);}
+.sf-basket-icon{width:38px;height:38px;flex-shrink:0;}
+.sf-basket-icon.sf-shape-circle{border-radius:50%;}
+.sf-basket-icon.sf-shape-square{border-radius:6px;}
+.sf-basket-icon.sf-shape-triangle{clip-path:polygon(50% 0%,0% 100%,100% 100%);border-radius:0;}
+.sf-basket-icon.sf-shape-star{clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);}
+.sf-basket-icon.sf-shape-diamond{clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);}
+.sf-basket-label{font-size:13px;font-weight:800;text-align:center;}
+.sf-basket-speak{width:34px;height:34px;border-radius:50%;color:#fff;border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 /* DRAG GHOST */
 .drag-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:.88;transition:none !important;}
 /* HVA ER DETTE */
@@ -343,6 +373,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="game-btn" onclick="startGame('hva-er-dette')" style="grid-column:span 2"><span class="game-icon">📸</span><span class="game-name">Hva er dette?</span></button>
     <button class="game-btn" onclick="pickCount('sorter-storrelse')"><span class="game-icon">📏</span><span class="game-name">Sorter etter størrelse</span></button>
     <button class="game-btn" onclick="pickCount('sorter-grupper')"><span class="game-icon">🗂️</span><span class="game-name">Sorter i grupper</span></button>
+    <button class="game-btn" onclick="pickCount('sorter-former')" style="grid-column:span 2"><span class="game-icon">🔷</span><span class="game-name">Sorter former</span></button>
   </div>
 </div>
 
@@ -406,6 +437,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="ss-line"></div>
     <div class="ss-slots" id="ssSlots"></div>
   </div>
+</div>
+
+<!-- ── SCREEN: SORTER FORMER ── -->
+<div class="screen" id="screen-sorter-former">
+  <div class="sf-arena" id="sfArena"></div>
+  <div id="sfBaskets"></div>
 </div>
 
 <!-- ── SCREEN: SORTER I GRUPPER ── -->
@@ -678,7 +715,7 @@ const NAV_TITLES = {
   'home':'VVO Kortspill','game-pick':'Velg spill','count-pick':'',
   'se-og-laer':'Se og lær','finn-par':'Finn par','finn-bildet':'Finn bildet',
   'hvilken':'Hvilken hører ikke til?','hva-er-dette':'Hva er dette?',
-  'sorter-storrelse':'Sorter etter størrelse','sorter-grupper':'Sorter i grupper',
+  'sorter-storrelse':'Sorter etter størrelse','sorter-grupper':'Sorter i grupper','sorter-former':'Sorter former',
   'win':'','teacher-home':'Mine kortsett','edit-set':'Rediger kortsett',
   'edit-card':'Rediger kort','settings':'Innstillinger'
 };
@@ -960,7 +997,7 @@ function showScreen(name, push = true) {
 
   // Nav right button
   const nr = document.getElementById('navRight');
-  const gamescreens = ['se-og-laer','finn-par','finn-bildet','hvilken','hva-er-dette','sorter-storrelse','sorter-grupper','win'];
+  const gamescreens = ['se-og-laer','finn-par','finn-bildet','hvilken','hva-er-dette','sorter-storrelse','sorter-grupper','sorter-former','win'];
   if (name === 'teacher-home') { nr.textContent = '⚙️'; nr.style.visibility = ''; }
   else if (name === 'edit-set') { nr.textContent = '💾'; nr.style.visibility = ''; }
   else if (name === 'edit-card') { nr.textContent = '💾'; nr.style.visibility = ''; }
@@ -1061,14 +1098,18 @@ function pickCount(gameType) {
   }
   const isStorrelse = gameType === 'sorter-storrelse';
   const isGrupper = gameType === 'sorter-grupper';
+  const isFormer = gameType === 'sorter-former';
   if (isStorrelse) {
     document.getElementById('countTitle').textContent = 'Sorter størrelse — vanskelighet';
     document.getElementById('countSub').textContent = 'Velg antall former å sortere';
   } else if (isGrupper) {
     document.getElementById('countTitle').textContent = 'Sorter i grupper — antall kort';
     document.getElementById('countSub').textContent = 'Velg antall kort per gruppe';
+  } else if (isFormer) {
+    document.getElementById('countTitle').textContent = 'Sorter former — antall kategorier';
+    document.getElementById('countSub').textContent = 'Velg hvor mange ulike former';
   }
-  const opts = isPar ? [3,4,6,8,10,12] : isBildet ? [2,4,6] : isStorrelse ? [3,4,5] : isGrupper ? [3,5,7] : [3,4,6];
+  const opts = isPar ? [3,4,6,8,10,12] : isBildet ? [2,4,6] : isStorrelse ? [3,4,5] : isGrupper ? [3,5,7] : isFormer ? [2,3,4] : [3,4,6];
   document.getElementById('countGrid').innerHTML = opts.map(n =>
     `<button class="count-btn" onclick="startGameWithCount(${n})">${n}</button>`).join('');
   showScreen('count-pick');
@@ -1088,6 +1129,7 @@ async function startGame(type) {
   else if (type === 'hva-er-dette') initHvaErDette();
   else if (type === 'sorter-storrelse') initSorterStorrelse();
   else if (type === 'sorter-grupper') await initSorterGrupper();
+  else if (type === 'sorter-former') initSorterFormer();
 }
 
 /* ============================================================
@@ -2158,6 +2200,7 @@ function dragEnd(e) {
   _drag = null;
   if (_gameType === 'sorter-storrelse') ssDropped(el, cx, cy);
   else if (_gameType === 'sorter-grupper') sgDropped(el, cx, cy);
+  else if (_gameType === 'sorter-former') sfDropped(el, cx, cy);
 }
 
 document.addEventListener('mousemove', dragMove);
@@ -2274,8 +2317,9 @@ function ssDropped(el, cx, cy) {
   // Correct placement
   playSoftPling();
   _ssSlotData[targetIdx] = rank;
-  el.style.position = 'relative';
-  el.style.left = ''; el.style.top = '';
+  el.style.removeProperty('position');
+  el.style.removeProperty('left');
+  el.style.removeProperty('top');
   el.style.cursor = 'default';
   el.removeEventListener('mousedown', dragStart);
   el.removeEventListener('touchstart', dragStart);
@@ -2290,6 +2334,131 @@ function ssDropped(el, cx, cy) {
       document.getElementById('winSub').textContent = 'Du sorterte dem riktig!';
       showScreen('win');
     }, 500);
+  }
+}
+
+/* ============================================================
+   SORTER FORMER
+   ============================================================ */
+const SF_TYPES = [
+  { type:'circle',   name:'Sirkel',  color:'#1565C0' },
+  { type:'square',   name:'Firkant', color:'#B71C1C' },
+  { type:'triangle', name:'Trekant', color:'#1B5E20' },
+  { type:'star',     name:'Stjerne', color:'#F57F17' },
+  { type:'diamond',  name:'Rombe',   color:'#6A1B9A' },
+];
+const SF_CORNER_CLASSES = ['corner-tl','corner-tr','corner-bl','corner-br'];
+let _sfCategories = [];
+let _sfRemaining = 0;
+let _sfBasketEls = [];
+
+function initSorterFormer() {
+  const n = _gameCount || 2;
+  _sfCategories = shuffle([...SF_TYPES]).slice(0, n);
+  const perCat = 3;
+  _sfRemaining = n * perCat;
+  _sfBasketEls = [];
+
+  showScreen('sorter-former');
+  const arena = document.getElementById('sfArena');
+  const basketsEl = document.getElementById('sfBaskets');
+  arena.innerHTML = ''; basketsEl.innerHTML = '';
+
+  const useCorners = n === 4;
+  if (useCorners) {
+    basketsEl.classList.add('corners');
+    basketsEl.style.position = 'absolute';
+  } else {
+    basketsEl.classList.remove('corners');
+    basketsEl.style.position = '';
+  }
+
+  _sfCategories.forEach((cat, i) => {
+    const basket = document.createElement('div');
+    basket.className = 'sf-basket' + (useCorners ? ' corner ' + SF_CORNER_CLASSES[i] : '');
+    basket.dataset.type = cat.type;
+    basket.style.borderColor = cat.color;
+
+    const icon = document.createElement('div');
+    icon.className = 'sf-basket-icon sf-shape-' + cat.type;
+    icon.style.background = cat.color;
+
+    const label = document.createElement('div');
+    label.className = 'sf-basket-label';
+    label.textContent = cat.name;
+    label.style.color = cat.color;
+
+    const speak = document.createElement('button');
+    speak.className = 'sf-basket-speak';
+    speak.style.background = cat.color;
+    speak.textContent = '🔊';
+    speak.onclick = () => speakText(cat.name);
+
+    basket.appendChild(icon);
+    basket.appendChild(label);
+    basket.appendChild(speak);
+    basketsEl.appendChild(basket);
+    _sfBasketEls.push(basket);
+  });
+
+  // Scatter shapes in arena
+  const arenaRect = arena.getBoundingClientRect();
+  const sz = 80;
+  const allItems = [];
+  _sfCategories.forEach(cat => {
+    for (let i = 0; i < perCat; i++) allItems.push(cat);
+  });
+  shuffle(allItems).forEach((cat, i) => {
+    const el = document.createElement('div');
+    el.className = 'sf-shape sf-shape-' + cat.type;
+    el.style.width = sz + 'px';
+    el.style.height = sz + 'px';
+    el.style.background = cat.color;
+    el.dataset.type = cat.type;
+
+    const cols = 3, col = i % cols, row = Math.floor(i / cols);
+    const cellW = (arenaRect.width - 24) / cols;
+    const cellH = Math.max(sz + 20, (arenaRect.height - 16) / Math.ceil(allItems.length / cols));
+    const x = 12 + col * cellW + cellW/2 - sz/2 + (Math.random()-0.5)*22;
+    const y = 8 + row * cellH + cellH/2 - sz/2 + (Math.random()-0.5)*22;
+    el.style.left = Math.max(4, Math.min(arenaRect.width - sz - 4, x)) + 'px';
+    el.style.top = Math.max(4, Math.min(arenaRect.height - sz - 4, y)) + 'px';
+
+    el.addEventListener('mousedown', ev => dragStart(ev, el));
+    el.addEventListener('touchstart', ev => dragStart(ev, el), { passive: false });
+    arena.appendChild(el);
+  });
+
+  setTimeout(() => speakText('Dra formene til riktig kurv.'), 600);
+}
+
+function sfDropped(el, cx, cy) {
+  let target = null;
+  _sfBasketEls.forEach(b => {
+    const r = b.getBoundingClientRect();
+    if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) target = b;
+  });
+  if (!target) return;
+
+  if (el.dataset.type === target.dataset.type) {
+    playSoftPling();
+    el.style.transition = 'opacity .25s,transform .25s';
+    el.style.opacity = '0'; el.style.transform = 'scale(.5)';
+    setTimeout(() => el.remove(), 260);
+    _sfRemaining--;
+    if (_sfRemaining === 0) {
+      setTimeout(() => {
+        if (currentScreen() !== 'sorter-former') return;
+        playWin();
+        document.getElementById('winTitle').textContent = 'Bra sortert! 🎉';
+        document.getElementById('winSub').textContent = 'Alle formene er på rett plass!';
+        showScreen('win');
+      }, 450);
+    }
+  } else {
+    playWrong();
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 400);
   }
 }
 
@@ -2421,6 +2590,7 @@ function playAgain() {
   else if (_gameType === 'hvilken') initHvilken();
   else if (_gameType === 'sorter-storrelse') initSorterStorrelse();
   else if (_gameType === 'sorter-grupper') initSorterGrupper();
+  else if (_gameType === 'sorter-former') initSorterFormer();
   else showScreen('game-pick');
 }
 
