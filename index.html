@@ -1183,9 +1183,21 @@ function initFinnPar() {
 
 function renderFinnPar() {
   const n = _fpTiles.length;
-  const cols = n <= 8 ? 4 : 4;
+  // Pick cols so the grid stays as square as possible
   const grid = document.getElementById('fpGrid');
-  const rows = Math.ceil(_fpTiles.length / cols);
+  const vw = grid.clientWidth || window.innerWidth;
+  const vh = grid.clientHeight || window.innerHeight * 0.75;
+  let bestCols = 4;
+  let bestDiff = Infinity;
+  for (let c = 3; c <= 6; c++) {
+    const r = Math.ceil(n / c);
+    const cellW = vw / c;
+    const cellH = vh / r;
+    const diff = Math.abs(cellW - cellH);
+    if (diff < bestDiff) { bestDiff = diff; bestCols = c; }
+  }
+  const cols = bestCols;
+  const rows = Math.ceil(n / cols);
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
   document.getElementById('fpInfo').textContent = `${_fpMatched.size / 2} av ${n / 2} par funnet`;
